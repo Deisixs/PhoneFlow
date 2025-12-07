@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Smartphone,
   Wrench,
@@ -8,10 +8,9 @@ import {
   QrCode,
   LogOut,
   Lock,
-  Menu,
-  X,
   Package,
-  Hammer
+  Hammer,
+  MoreHorizontal
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
@@ -20,32 +19,34 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { path: '/inventory', icon: Smartphone, label: 'Inventaire' },
+const mainNavItems = [
+  { path: '/inventory', icon: Smartphone, label: 'Stock' },
   { path: '/repairs', icon: Wrench, label: 'Réparations' },
-  { path: '/stock', icon: Package, label: 'Stock Pièces' },
-  { path: '/materiel', icon: Hammer, label: 'Matériel' },
-  { path: '/analytics', icon: BarChart3, label: 'Analyses' },
   { path: '/scanner', icon: QrCode, label: 'Scanner' },
+  { path: '/analytics', icon: BarChart3, label: 'Stats' },
+];
+
+const moreNavItems = [
+  { path: '/stock', icon: Package, label: 'Pièces' },
+  { path: '/materiel', icon: Hammer, label: 'Matériel' },
   { path: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [showMoreMenu, setShowMoreMenu] = React.useState(false);
   const { logout, lock, updateLastActivity } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   React.useEffect(() => {
     const handleActivity = () => updateLastActivity();
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('click', handleActivity);
+    const events = ['touchstart', 'touchmove', 'click', 'scroll'];
+
+    events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
 
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('click', handleActivity);
+      events.forEach(event => window.removeEventListener(event, handleActivity));
     };
   }, [updateLastActivity]);
 
@@ -60,93 +61,117 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     showToast('Session verrouillée', 'info');
   };
 
+  const isMoreActive = moreNavItems.some(item => location.pathname === item.path);
+
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-hidden">
+    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-fuchsia-500/10 to-blue-600/10 pointer-events-none" />
 
-      <aside
-        className={`fixed lg:relative z-40 h-screen w-72 backdrop-blur-2xl bg-white/5 border-r border-white/10 transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
-                <Smartphone className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                  PhoneFlow
-                </h1>
-                <p className="text-xs text-gray-400">Enterprise Pro</p>
-              </div>
+      <main className="flex-1 overflow-auto pb-20 relative">
+        <div className="p-4 sm:p-6">
+          {children}
+        </div>
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-2xl bg-black/80 border-t border-white/10 safe-area-inset-bottom">
+        <div className="flex items-center justify-around px-2 py-2 max-w-screen-xl mx-auto">
+          {mainNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 min-w-[64px] ${
+                  isActive
+                    ? 'text-white'
+                    : 'text-gray-400'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={`p-2 rounded-xl transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30'
+                      : 'bg-transparent'
+                  }`}>
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          <button
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+            className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 min-w-[64px] ${
+              isMoreActive ? 'text-white' : 'text-gray-400'
+            }`}
+          >
+            <div className={`p-2 rounded-xl transition-all ${
+              isMoreActive
+                ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30'
+                : 'bg-transparent'
+            }`}>
+              <MoreHorizontal className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-medium">Plus</span>
+          </button>
+        </div>
+      </nav>
+
+      {showMoreMenu && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          <div className="fixed bottom-20 right-4 left-4 z-50 backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl animate-slide-up overflow-hidden">
+            <div className="p-2">
+              {moreNavItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setShowMoreMenu(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 text-white border border-violet-500/30'
+                        : 'text-gray-300 hover:bg-white/5'
+                    }`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+
+            <div className="border-t border-white/10 p-2">
+              <button
+                onClick={() => {
+                  handleLock();
+                  setShowMoreMenu(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/5 transition-all duration-200"
+              >
+                <Lock className="w-5 h-5" />
+                <span className="font-medium">Verrouiller</span>
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowMoreMenu(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Déconnexion</span>
+              </button>
             </div>
           </div>
-
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 text-white border border-violet-500/30 shadow-lg shadow-violet-500/20'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`
-                }
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="p-4 border-t border-white/10 space-y-2">
-            <button
-              onClick={handleLock}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
-            >
-              <Lock className="w-5 h-5" />
-              <span className="font-medium">Verrouiller</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Déconnexion</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        </>
       )}
-
-      <div className="flex-1 flex flex-col min-h-screen relative">
-        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/50 border-b border-white/10">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-colors"
-            >
-              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-            <div className="flex-1" />
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </div>
     </div>
   );
 };
