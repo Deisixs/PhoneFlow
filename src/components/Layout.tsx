@@ -36,7 +36,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  // Détection activité
   React.useEffect(() => {
     const handle = () => updateLastActivity();
     window.addEventListener('mousemove', handle);
@@ -57,8 +56,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen w-full bg-black text-white flex">
-      
-      {/* FOND VIOLET GLOBAL */}
+
+      {/* FOND GLOBAL */}
       <div className="fixed inset-0 bg-gradient-to-br from-violet-700/20 via-fuchsia-600/10 to-blue-800/20 pointer-events-none" />
 
       {/* SIDEBAR FIXE */}
@@ -68,11 +67,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         `}
       >
         <div className="flex flex-col h-full">
-          
+
           {/* Logo */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
                 <Smartphone className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -84,7 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
 
-          {/* MENU */}
+          {/* NAVIGATION */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => (
               <NavLink
@@ -105,7 +104,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             ))}
           </nav>
 
-          {/* Footer */}
+          {/* FOOTER */}
           <div className="p-4 border-t border-white/10 space-y-2">
             <button
               onClick={() => lock()}
@@ -125,7 +124,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </aside>
 
-      {/* OVERLAY mobile */}
+      {/* OVERLAY MOBILE */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
@@ -133,22 +132,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* MAIN CONTENT FIXÉ */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 ml-0 lg:ml-72 relative z-10">
-        
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-black/40 backdrop-blur-xl border-b border-white/10">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <button
-              className="lg:hidden p-2 rounded-xl hover:bg-white/5"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X /> : <Menu />}
-            </button>
-          </div>
-        </header>
 
-        {/* LE SCROLL SE FAIT ICI (global, pas dans le main !) */}
+        {/* 🔥 HEADER SUPPRIMÉ DONC PLUS AUCUNE BANDE EN HAUT */}
+
         <main className="p-6">
           {children}
         </main>
