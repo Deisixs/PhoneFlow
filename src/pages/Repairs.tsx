@@ -56,7 +56,7 @@ export const Repairs: React.FC = () => {
       if (error) throw error;
       setRepairs(data || []);
     } catch (error) {
-      showToast('Failed to load repairs', 'error');
+      showToast('Échec du chargement des réparations', 'error');
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export const Repairs: React.FC = () => {
       if (error) throw error;
       setPhones(data || []);
     } catch (error) {
-      console.error('Failed to load phones', error);
+      console.error('Échec du chargement des téléphones', error);
     }
   };
 
@@ -93,14 +93,14 @@ export const Repairs: React.FC = () => {
       if (error) throw error;
 
       loadRepairs();
-      showToast(`Repair marked as ${newStatus.replace('_', ' ')}`, 'success');
+      showToast(`Statut mis à jour : ${newStatus.replace('_', ' ')}`, 'success');
     } catch (error) {
-      showToast('Failed to update repair status', 'error');
+      showToast('Échec de la mise à jour du statut', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this repair?')) return;
+    if (!confirm('Voulez-vous vraiment supprimer cette réparation ?')) return;
 
     try {
       const { error } = await supabase.from('repairs').delete().eq('id', id);
@@ -108,9 +108,9 @@ export const Repairs: React.FC = () => {
       if (error) throw error;
 
       setRepairs(repairs.filter((r) => r.id !== id));
-      showToast('Repair deleted successfully', 'success');
+      showToast('Réparation supprimée avec succès', 'success');
     } catch (error) {
-      showToast('Failed to delete repair', 'error');
+      showToast('Échec de la suppression', 'error');
     }
   };
 
@@ -161,25 +161,28 @@ export const Repairs: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            Repairs
+            Réparations
           </h1>
-          <p className="text-gray-400 mt-1">Track and manage phone repairs</p>
+          <p className="text-gray-400 mt-1">Suivez et gérez vos réparations de téléphones</p>
         </div>
         <button
           onClick={() => {
             setSelectedRepair(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-105"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-violet-500/30 hover:scale-105"
         >
           <Plus className="w-5 h-5" />
-          Add Repair
+          Ajouter une réparation
         </button>
       </div>
 
+      {/* SEARCH + FILTERS */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -187,19 +190,21 @@ export const Repairs: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search repairs..."
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
+            placeholder="Rechercher une réparation..."
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
           />
         </div>
+
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
         >
           <Filter className="w-5 h-5" />
-          Filters
+          Filtres
         </button>
       </div>
 
+      {/* FILTER PANEL */}
       {showFilters && (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-4 animate-slide-down">
           <div className="flex gap-2 flex-wrap">
@@ -210,49 +215,67 @@ export const Repairs: React.FC = () => {
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filterStatus === status
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
-                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10'
                 }`}
               >
-                {status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                {{
+                  all: "Tous",
+                  pending: "En attente",
+                  in_progress: "En cours",
+                  completed: "Terminée",
+                  failed: "Échouée"
+                }[status]}
               </button>
             ))}
           </div>
         </div>
       )}
 
+      {/* EMPTY LIST */}
       {filteredRepairs.length === 0 ? (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
             <Search className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-300 mb-2">No repairs found</h3>
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">Aucune réparation trouvée</h3>
           <p className="text-gray-500">
-            {searchQuery ? 'Try adjusting your search' : 'Add your first repair to get started'}
+            {searchQuery ? 'Essayez de modifier votre recherche' : 'Ajoutez votre première réparation pour commencer'}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
+
           {filteredRepairs.map((repair) => (
             <div
               key={repair.id}
-              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10"
+              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
             >
               <div className="flex items-start justify-between mb-4">
+                
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold text-white">{repair.description}</h3>
+
                     <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(repair.status)}`}>
                       {getStatusIcon(repair.status)}
-                      {repair.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      {{
+                        pending: "En attente",
+                        in_progress: "En cours",
+                        completed: "Terminée",
+                        failed: "Échouée"
+                      }[repair.status]}
                     </span>
                   </div>
+
                   {repair.phone && (
                     <p className="text-sm text-gray-400 mb-2">
                       {repair.phone.model} • {repair.phone.imei}
                     </p>
                   )}
+
                   <p className="text-gray-300 whitespace-pre-wrap">{repair.repair_list}</p>
                 </div>
+
                 <div className="text-right">
                   <p className="text-2xl font-bold text-orange-400">€{repair.cost.toFixed(2)}</p>
                   {repair.technician && (
@@ -261,55 +284,62 @@ export const Repairs: React.FC = () => {
                 </div>
               </div>
 
+              {/* ACTIONS */}
               <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                
                 <div className="flex gap-2">
                   {repair.status === 'pending' && (
                     <button
                       onClick={() => handleStatusChange(repair.id, 'in_progress')}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all text-sm font-medium"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 text-sm"
                     >
                       <Play className="w-4 h-4" />
-                      Start
+                      Démarrer
                     </button>
                   )}
+
                   {repair.status === 'in_progress' && (
                     <>
                       <button
                         onClick={() => handleStatusChange(repair.id, 'completed')}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg transition-all text-sm font-medium"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30 text-sm"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        Complete
+                        Terminer
                       </button>
+
                       <button
                         onClick={() => handleStatusChange(repair.id, 'failed')}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all text-sm font-medium"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 text-sm"
                       >
                         <XCircle className="w-4 h-4" />
-                        Failed
+                        Échec
                       </button>
                     </>
                   )}
+
                   <button
                     onClick={() => {
                       setSelectedRepair(repair);
                       setShowModal(true);
                     }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-lg transition-all text-sm font-medium"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-violet-600/20 text-violet-400 rounded-lg hover:bg-violet-600/30 text-sm"
                   >
                     <Edit className="w-4 h-4" />
-                    Edit
+                    Modifier
                   </button>
+
                   <button
                     onClick={() => handleDelete(repair.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all text-sm font-medium"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 text-sm"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete
+                    Supprimer
                   </button>
                 </div>
+
                 <span className="text-xs text-gray-500">
-                  {new Date(repair.created_at).toLocaleDateString()}
+                  {new Date(repair.created_at).toLocaleDateString('fr-FR')}
                 </span>
               </div>
             </div>
