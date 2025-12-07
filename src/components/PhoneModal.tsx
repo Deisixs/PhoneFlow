@@ -92,21 +92,21 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-black/95 sm:bg-white/10 border-t sm:border border-white/20 sm:rounded-2xl shadow-2xl animate-slide-up">
-        <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {phone ? 'Modifier' : 'Nouveau'}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
+        <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            {phone ? 'Edit Phone' : 'Add New Phone'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 pb-24 sm:pb-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
@@ -115,7 +115,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 placeholder="iPhone 14 Pro"
               />
             </div>
@@ -126,7 +126,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.storage}
                 onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               >
                 {STORAGE_OPTIONS.map((option) => (
                   <option key={option} value={option} className="bg-gray-900">
@@ -143,7 +143,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 placeholder="Space Black"
               />
             </div>
@@ -155,7 +155,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.imei}
                 onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 placeholder="123456789012345"
               />
             </div>
@@ -166,7 +166,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.condition}
                 onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               >
                 {CONDITION_OPTIONS.map((option) => (
                   <option key={option} value={option} className="bg-gray-900">
@@ -177,36 +177,36 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Prix d'achat (€)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Purchase Price (€)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.purchase_price}
                 onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Date d'achat</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Purchase Date</label>
               <input
                 type="date"
                 value={formData.purchase_date}
                 onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Compte</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Purchase Account</label>
               <select
                 value={formData.purchase_account_id || ''}
                 onChange={(e) => setFormData({ ...formData, purchase_account_id: e.target.value === '' ? null : e.target.value })}
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               >
-                <option value="" className="bg-gray-900">Sélectionner</option>
+                <option value="" className="bg-gray-900">Select account</option>
                 {accounts.map((account) => (
                   <option key={account.id} value={account.id} className="bg-gray-900">
                     {account.name}
@@ -222,13 +222,13 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
-              placeholder="Notes additionnelles..."
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+              placeholder="Additional notes..."
             />
           </div>
 
           <div className="border-t border-white/10 pt-4">
-            <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
+            <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.is_sold}
@@ -239,57 +239,57 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     sale_date: e.target.checked ? new Date().toISOString().split('T')[0] : null,
                   })
                 }
-                className="w-6 h-6 rounded bg-white/5 border-white/10 text-violet-600 focus:ring-violet-500/50"
+                className="w-5 h-5 rounded bg-white/5 border-white/10 text-violet-600 focus:ring-violet-500/50"
               />
-              <span className="text-base font-medium text-gray-300">Marquer comme vendu</span>
+              <span className="text-sm font-medium text-gray-300">Mark as sold</span>
             </label>
           </div>
 
           {formData.is_sold && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-down">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Prix de vente (€)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Sale Price (€)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.sale_price || ''}
                   onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) || null })}
-                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de vente</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Sale Date</label>
                 <input
                   type="date"
                   value={formData.sale_date || ''}
                   onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-base focus:outline-none focus:ring-2 focus:ring-violet-500/50 min-h-[44px]"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 />
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 sticky sm:static bottom-0 left-0 right-0 p-4 sm:p-0 bg-black/95 sm:bg-transparent border-t sm:border-t-0 border-white/10 -mx-4 sm:mx-0">
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 active:bg-white/15 text-white rounded-xl transition-all min-h-[44px] active:scale-95"
+              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all"
             >
-              Annuler
+              Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 active:from-violet-700 active:to-fuchsia-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/30 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px] active:scale-95"
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Enregistrement...
+                  Saving...
                 </>
               ) : (
-                'Enregistrer'
+                'Save Phone'
               )}
             </button>
           </div>
