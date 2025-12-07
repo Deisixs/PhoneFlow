@@ -111,7 +111,7 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
             Créer un compte
           </h1>
           <p className="text-center text-gray-400 mb-8">
-            Rejoignez PhoneFlow Pro
+            Rejoignez PhoneFlow
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
