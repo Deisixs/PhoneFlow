@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import React, { useState } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from './Toast';
 
 interface StockPiece {
   id?: string;
@@ -8,172 +11,205 @@ interface StockPiece {
   purchase_price: number;
   quantity: number;
   supplier: string;
-  supplier_link: string;
+  product_link: string;
+  created_at?: string;
+  user_id?: string;
 }
 
-interface StockModalProps {
-  isOpen: boolean;
+interface StockPieceModalProps {
+  piece: StockPiece | null;
   onClose: () => void;
-  onSubmit: (piece: StockPiece) => void;
-  piece?: StockPiece;
+  onSave: () => void;
 }
 
-export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockModalProps) {
-  const [formData, setFormData] = useState<StockPiece>({
-    name: "",
-    description: "",
-    purchase_price: 0,
-    quantity: 0,
-    supplier: "",
-    supplier_link: ""
+export const StockPieceModal: React.FC<StockPieceModalProps> = ({
+  piece,
+  onClose,
+  onSave
+}) => {
+  const { userId } = useAuth();
+  const { showToast } = useToast();
+
+  const [loading, setLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: piece?.name || "",
+    description: piece?.description || "",
+    purchase_price: piece?.purchase_price || 0,
+    quantity: piece?.quantity || 1,
+    supplier: piece?.supplier || "",
+    product_link: piece?.product_link || ""
   });
 
-  useEffect(() => {
-    if (piece) {
-      setFormData(piece);
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        purchase_price: 0,
-        quantity: 0,
-        supplier: "",
-        supplier_link: ""
-      });
-    }
-  }, [piece, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-    onClose();
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...formData,
+        user_id: userId,
+      };
+
+      if (piece?.id) {
+        const { error } = await supabase
+          .from("stock_pieces")
+          .update(payload)
+          .eq("id", piece.id);
+
+        if (error) throw error;
+        showToast("Pièce modifiée avec succès", "success");
+      } else {
+        const { error } = await supabase
+          .from("stock_pieces")
+          .insert(payload);
+
+        if (error) throw error;
+        showToast("Pièce ajoutée avec succès", "success");
+      }
+
+      onSave();
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de l’enregistrement", "error");
+    }
+
+    setLoading(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto 
-      bg-neutral-900/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
 
-        {/* HEADER IDENTIQUE À PHONEMODAL */}
-        <div className="sticky top-0 z-10 bg-neutral-900/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        {/* HEADER IDENTIQUE */}
+        <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {piece ? "Modifier une pièce" : "Ajouter une pièce"}
+            {piece ? "Modifier la pièce" : "Ajouter une pièce"}
           </h2>
 
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition">
-            <X className="w-5 h-5 text-white" />
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* FORMULAIRE */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* FORMULAIRE IDENTIQUE STYLE */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
-          {/* Nom */}
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Nom *</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Nom de la pièce *
+            </label>
             <input
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-              text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              placeholder="Ex : Écran iPhone 13"
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+              placeholder="Ex: Écran iPhone 13"
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Description</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Description
+            </label>
             <textarea
-              rows={4}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-              text-white placeholder-gray-500 resize-none focus:ring-2 focus:ring-violet-500/40"
-              placeholder="Description de la pièce…"
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none"
+              placeholder="Description de la pièce..."
             />
           </div>
 
-          {/* Prix + Quantité */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">Prix d'achat (€) *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Prix d'achat (€) *
+              </label>
               <input
                 type="number"
+                required
                 value={formData.purchase_price}
-                onChange={(e) =>
+                onChange={e =>
                   setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })
                 }
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">Quantité *</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Quantité *
+              </label>
               <input
                 type="number"
+                required
                 value={formData.quantity}
-                onChange={(e) =>
+                onChange={e =>
                   setFormData({ ...formData, quantity: parseInt(e.target.value) })
                 }
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
             </div>
           </div>
 
-          {/* Fournisseur */}
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Fournisseur</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Fournisseur
+            </label>
             <input
               type="text"
               value={formData.supplier}
-              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-              text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              placeholder="Ex : AliExpress, Amazon…"
+              onChange={e => setFormData({ ...formData, supplier: e.target.value })}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+              placeholder="Ex: AliExpress, Amazon..."
             />
           </div>
 
-          {/* Lien */}
           <div>
-            <label className="text-sm text-gray-300 mb-1 block">Lien du produit</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Lien du produit
+            </label>
             <input
               type="url"
-              value={formData.supplier_link}
-              onChange={(e) => setFormData({ ...formData, supplier_link: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-              text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              placeholder="https://…"
+              value={formData.product_link}
+              onChange={e => setFormData({ ...formData, product_link: e.target.value })}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+              placeholder="https://..."
             />
           </div>
 
-          {/* Boutons */}
-          <div className="flex gap-4 pt-4">
+          {/* BUTTONS IDENTIQUES */}
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 
-              rounded-xl text-white transition"
+              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition"
             >
               Annuler
             </button>
 
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white 
-              bg-gradient-to-r from-violet-600 to-fuchsia-600 
-              hover:from-violet-500 hover:to-fuchsia-500 shadow-lg"
+              disabled={loading}
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {piece ? "Mettre à jour" : "Ajouter"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Enregistrement…
+                </>
+              ) : (
+                "Ajouter"
+              )}
             </button>
           </div>
+
         </form>
       </div>
     </div>
   );
-}
+};
