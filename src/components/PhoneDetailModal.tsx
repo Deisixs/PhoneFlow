@@ -64,11 +64,48 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     }
   };
 
-  const totalRepairCost = repairs.reduce((sum, repair) => sum + repair.cost, 0);
-  const netProfit = phone.is_sold && phone.sale_price
-    ? phone.sale_price - phone.purchase_price - totalRepairCost
-    : 0;
+  // -----------------------------
+  // STATUT DU TÉLÉPHONE
+  // -----------------------------
+  const getPhoneStatus = () => {
+    if (phone.is_sold) return "sold";
 
+    const hasActiveRepair = repairs.some(r => r.status !== "completed");
+    if (hasActiveRepair) return "repair";
+
+    return "available";
+  };
+
+  const getStatusBadge = () => {
+    const status = getPhoneStatus();
+
+    switch (status) {
+      case "sold":
+        return (
+          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
+            VENDU
+          </span>
+        );
+
+      case "repair":
+        return (
+          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full">
+            EN RÉPARATION
+          </span>
+        );
+
+      default:
+        return (
+          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full">
+            EN STOCK
+          </span>
+        );
+    }
+  };
+
+  // -----------------------------
+  // QR CODE DOWNLOAD
+  // -----------------------------
   const downloadQR = () => {
     const svg = document.getElementById('qr-code') as unknown as SVGElement;
     if (svg) {
@@ -116,6 +153,11 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     }
   };
 
+  const totalRepairCost = repairs.reduce((sum, repair) => sum + repair.cost, 0);
+  const netProfit = phone.is_sold && phone.sale_price
+    ? phone.sale_price - phone.purchase_price - totalRepairCost
+    : 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
@@ -137,7 +179,12 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
             <div className="lg:col-span-2 space-y-6">
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Informations générales</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white">Informations générales</h3>
+
+                  {/* BADGE STATUT */}
+                  {getStatusBadge()}
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -232,7 +279,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                 </button>
               </div>
 
-              {/* INDICATEUR VENDU */}
+              {/* SECTION VENDU */}
               {phone.is_sold && (
                 <div className="backdrop-blur-xl bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center">
                   <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -271,7 +318,9 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h4 className="text-white font-semibold mb-1">{repair.description}</h4>
-                        <p className="text-sm text-gray-400 whitespace-pre-wrap">{repair.repair_list}</p>
+                        <p className="text-sm text-gray-400 whitespace-pre-wrap">
+                          {repair.repair_list}
+                        </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(repair.status)}`}>
                         {translateStatus(repair.status)}

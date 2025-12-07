@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus,
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Copy,
-  ExternalLink
+  Plus, Search, Filter, Eye, Edit, Trash2, Copy, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +26,12 @@ interface Phone {
   created_at: string;
 }
 
+interface Repair {
+  id: string;
+  phone_id: string;
+  status: string;
+}
+
 interface PurchaseAccount {
   id: string;
   name: string;
@@ -41,20 +40,29 @@ interface PurchaseAccount {
 
 export const Inventory: React.FC = () => {
   const [phones, setPhones] = useState<Phone[]>([]);
+  const [repairs, setRepairs] = useState<Repair[]>([]);
   const [accounts, setAccounts] = useState<PurchaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'sold'>('all');
+  const [filterStatus, setFilterStatus] =
+    useState<'all' | 'available' | 'sold' | 'repair'>('all');
+
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<Phone | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
   const { userId } = useAuth();
   const { showToast } = useToast();
 
+  // ---------------------
+  // LOAD DATA
+  // ---------------------
   useEffect(() => {
     if (userId) {
       loadPhones();
+      loadRepairs();
       loadAccounts();
     }
   }, [userId]);
@@ -69,86 +77,79 @@ export const Inventory: React.FC = () => {
 
       if (error) throw error;
       setPhones(data || []);
-    } catch (error) {
+    } catch {
       showToast('Échec du chargement des téléphones', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAccounts = async () => {
+  const loadRepairs = async () => {
     try {
       const { data, error } = await supabase
+        .from('repairs')
+        .select('id, phone_id, status')
+        .eq('user_id', userId!);
+
+      if (error) throw error;
+      setRepairs(data || []);
+    } catch {}
+  };
+
+  const loadAccounts = async () => {
+    try {
+      const { data } = await supabase
         .from('purchase_accounts')
         .select('id, name, color')
         .eq('user_id', userId!);
 
-      if (error) throw error;
       setAccounts(data || []);
-    } catch (error) {
-      console.error('Échec du chargement des comptes', error);
+    } catch {}
+  };
+
+  // ---------------------
+  // PHONE STATUS LOGIC
+  // ---------------------
+  const getPhoneStatus = (phone: Phone) => {
+    if (phone.is_sold) return 'sold';
+
+    const phoneRepairs = repairs.filter((r) => r.phone_id === phone.id);
+    const hasActiveRepair = phoneRepairs.some((r) => r.status !== 'completed');
+
+    if (hasActiveRepair) return 'repair';
+
+    return 'available';
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sold':
+        return (
+          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
+            VENDU
+          </span>
+        );
+      case 'repair':
+        return (
+          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full">
+            EN RÉPARATION
+          </span>
+        );
+      default:
+        return (
+          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full">
+            EN STOCK
+          </span>
+        );
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce téléphone ?')) return;
-
-    try {
-      const { error } = await supabase.from('phones').delete().eq('id', id);
-
-      if (error) throw error;
-
-      setPhones(phones.filter((p) => p.id !== id));
-      showToast('Téléphone supprimé avec succès', 'success');
-    } catch (error) {
-      showToast('Échec de la suppression du téléphone', 'error');
-    }
-  };
-
-  const handleDuplicate = async (phone: Phone) => {
-    try {
-      const { data, error } = await supabase
-        .from('phones')
-        .insert({
-          user_id: userId!,
-          model: phone.model,
-          storage: phone.storage,
-          color: phone.color,
-          imei: phone.imei + '-COPIE',
-          condition: phone.condition,
-          purchase_price: phone.purchase_price,
-          purchase_date: phone.purchase_date,
-          purchase_account_id: phone.purchase_account_id,
-          notes: phone.notes,
-          qr_code: null,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setPhones([data, ...phones]);
-      showToast('Téléphone dupliqué avec succès', 'success');
-    } catch (error) {
-      showToast('Échec de la duplication du téléphone', 'error');
-    }
-  };
-
-  const generateListing = (phone: Phone) => {
-    const template = `${phone.model} - ${phone.storage} - ${phone.color}
-
-État : ${phone.condition}
-IMEI : ${phone.imei}
-
-${phone.notes}
-
-Prix : €${phone.sale_price || phone.purchase_price}`;
-
-    navigator.clipboard.writeText(template);
-    showToast('Annonce copiée dans le presse-papiers', 'success');
-  };
-
+  // ---------------------
+  // FILTERING
+  // ---------------------
   const filteredPhones = phones.filter((phone) => {
+    const status = getPhoneStatus(phone);
+
     const matchesSearch =
       phone.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       phone.imei.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -156,35 +157,16 @@ Prix : €${phone.sale_price || phone.purchase_price}`;
 
     const matchesStatus =
       filterStatus === 'all' ||
-      (filterStatus === 'sold' && phone.is_sold) ||
-      (filterStatus === 'available' && !phone.is_sold);
+      (filterStatus === 'sold' && status === 'sold') ||
+      (filterStatus === 'available' && status === 'available') ||
+      (filterStatus === 'repair' && status === 'repair');
 
     return matchesSearch && matchesStatus;
   });
 
-  const getAccountName = (accountId: string | null) => {
-    if (!accountId) return 'N/A';
-    const account = accounts.find((a) => a.id === accountId);
-    return account?.name || 'N/A';
-  };
-
-  const getConditionColor = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case 'neuf':
-      case 'new':
-        return 'text-emerald-400 bg-emerald-500/10';
-      case 'excellent':
-        return 'text-blue-400 bg-blue-500/10';
-      case 'très bon':
-      case 'very good':
-        return 'text-cyan-400 bg-cyan-500/10';
-      case 'moyen':
-      case 'average':
-        return 'text-yellow-400 bg-yellow-500/10';
-      default:
-        return 'text-orange-400 bg-orange-500/10';
-    }
-  };
+  // ---------------------
+  // UI
+  // ---------------------
 
   if (loading) {
     return (
@@ -196,6 +178,7 @@ Prix : €${phone.sale_price || phone.purchase_price}`;
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
@@ -203,32 +186,34 @@ Prix : €${phone.sale_price || phone.purchase_price}`;
           </h1>
           <p className="text-gray-400 mt-1">Gérez votre collection de smartphones</p>
         </div>
+
         <button
           onClick={() => {
             setSelectedPhone(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-105"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-semibold hover:scale-105 transition"
         >
           <Plus className="w-5 h-5" />
           Ajouter un téléphone
         </button>
       </div>
 
+      {/* SEARCH + FILTERS */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
-            type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher par modèle, IMEI ou couleur..."
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
+            placeholder="Rechercher..."
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white"
           />
         </div>
+
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+          className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl"
         >
           <Filter className="w-5 h-5" />
           Filtres
@@ -238,136 +223,114 @@ Prix : €${phone.sale_price || phone.purchase_price}`;
       {showFilters && (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-4 animate-slide-down">
           <div className="flex gap-2">
-            {(['all', 'available', 'sold'] as const).map((status) => (
+            {(['all', 'available', 'repair', 'sold'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg ${
                   filterStatus === status
                     ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
-                    : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
+                    : 'bg-white/5 text-gray-400'
                 }`}
               >
-                {status === 'all' ? 'Tous' : status === 'available' ? 'Disponibles' : 'Vendus'}
+                {status === 'all'
+                  ? 'Tous'
+                  : status === 'available'
+                  ? 'En stock'
+                  : status === 'repair'
+                  ? 'En réparation'
+                  : 'Vendus'}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {filteredPhones.length === 0 ? (
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
-            <Search className="w-10 h-10 text-gray-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-300 mb-2">Aucun téléphone trouvé</h3>
-          <p className="text-gray-500">
-            {searchQuery ? 'Essayez d\'ajuster votre recherche' : 'Ajoutez votre premier téléphone pour commencer'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPhones.map((phone) => (
+      {/* LIST */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPhones.map((phone) => {
+          const status = getPhoneStatus(phone);
+
+          return (
             <div
               key={phone.id}
-              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-violet-500/20 group"
+              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:scale-105 transition"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-white mb-1">{phone.model}</h3>
-                  <p className="text-sm text-gray-400">
-                    {phone.storage} • {phone.color}
-                  </p>
+                <div>
+                  <h3 className="text-lg font-bold text-white">{phone.model}</h3>
+                  <p className="text-sm text-gray-400">{phone.storage} • {phone.color}</p>
                 </div>
-                {phone.is_sold && (
-                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
-                    VENDU
-                  </span>
-                )}
+
+                {/* STATUS BADGE */}
+                {getStatusBadge(status)}
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
                   <span className="text-gray-400">IMEI</span>
                   <span className="text-white font-mono">{phone.imei}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">État</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getConditionColor(phone.condition)}`}>
-                    {phone.condition}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Achat</span>
-                  <span className="text-white font-semibold">€{phone.purchase_price}</span>
-                </div>
-                {phone.is_sold && phone.sale_price && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Vendu pour</span>
-                    <span className="text-emerald-400 font-semibold">€{phone.sale_price}</span>
+
+                {!phone.is_sold && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Achat</span>
+                    <span className="text-white">€{phone.purchase_price}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Compte</span>
-                  <span className="text-white text-xs">{getAccountName(phone.purchase_account_id)}</span>
-                </div>
+
+                {phone.is_sold && phone.sale_price && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Vendu</span>
+                    <span className="text-emerald-400">€{phone.sale_price}</span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex gap-2 pt-4 border-t border-white/10">
+              <div className="flex gap-2 pt-4 border-t border-white/10 mt-4">
                 <button
                   onClick={() => {
                     setSelectedPhone(phone);
                     setShowDetailModal(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-violet-600/20 hover:bg-violet-600/30 text-violet-400 rounded-lg transition-all"
+                  className="flex-1 bg-violet-600/20 text-violet-400 p-2 rounded-lg"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
+
                 <button
                   onClick={() => {
                     setSelectedPhone(phone);
                     setShowModal(true);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg transition-all"
+                  className="flex-1 bg-blue-600/20 text-blue-400 p-2 rounded-lg"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => handleDuplicate(phone)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded-lg transition-all"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => generateListing(phone)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-fuchsia-600/20 hover:bg-fuchsia-600/30 text-fuchsia-400 rounded-lg transition-all"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </button>
+
                 <button
                   onClick={() => handleDelete(phone.id)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all"
+                  className="flex-1 bg-red-600/20 text-red-400 p-2 rounded-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {showModal && (
         <PhoneModal
           phone={selectedPhone}
           accounts={accounts}
           onClose={() => {
-            setShowModal(false);
             setSelectedPhone(null);
+            setShowModal(false);
           }}
           onSave={() => {
-            setShowModal(false);
-            setSelectedPhone(null);
             loadPhones();
+            setShowModal(false);
           }}
         />
       )}
@@ -376,8 +339,8 @@ Prix : €${phone.sale_price || phone.purchase_price}`;
         <PhoneDetailModal
           phone={selectedPhone}
           onClose={() => {
-            setShowDetailModal(false);
             setSelectedPhone(null);
+            setShowDetailModal(false);
           }}
           onUpdate={loadPhones}
         />
