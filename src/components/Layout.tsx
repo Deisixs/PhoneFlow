@@ -36,16 +36,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
+  // Détection activité
   React.useEffect(() => {
-    const handleActivity = () => updateLastActivity();
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('click', handleActivity);
-
+    const handle = () => updateLastActivity();
+    window.addEventListener('mousemove', handle);
+    window.addEventListener('keydown', handle);
+    window.addEventListener('click', handle);
     return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('mousemove', handle);
+      window.removeEventListener('keydown', handle);
+      window.removeEventListener('click', handle);
     };
   }, [updateLastActivity]);
 
@@ -55,24 +55,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/');
   };
 
-  const handleLock = () => {
-    lock();
-    showToast('Session verrouillée', 'info');
-  };
-
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-hidden">
-      {/* Gradient global */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-fuchsia-500/10 to-blue-600/10 pointer-events-none" />
+    <div className="min-h-screen w-full bg-black text-white flex">
+      
+      {/* FOND VIOLET GLOBAL */}
+      <div className="fixed inset-0 bg-gradient-to-br from-violet-700/20 via-fuchsia-600/10 to-blue-800/20 pointer-events-none" />
 
       {/* SIDEBAR FIXE */}
       <aside
-        className={`fixed lg:relative z-40 h-screen w-72 backdrop-blur-2xl bg-white/5 border-r border-white/10 transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed top-0 left-0 h-screen w-72 backdrop-blur-xl bg-black/40 border-r border-white/10 z-50 transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
       >
         <div className="flex flex-col h-full">
-          {/* LOGO */}
+          
+          {/* Logo */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -87,7 +84,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
 
-          {/* NAV */}
+          {/* MENU */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => (
               <NavLink
@@ -95,64 +92,67 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 text-white border border-violet-500/30 shadow-lg shadow-violet-500/20'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      ? "bg-gradient-to-r from-violet-600/30 to-fuchsia-600/30 text-white border border-violet-500/30"
+                      : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`
                 }
               >
                 <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
+                {item.label}
               </NavLink>
             ))}
           </nav>
 
-          {/* BOTTOM BUTTONS */}
+          {/* Footer */}
           <div className="p-4 border-t border-white/10 space-y-2">
             <button
-              onClick={handleLock}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
+              onClick={() => lock()}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white"
             >
-              <Lock className="w-5 h-5" />
-              <span className="font-medium">Verrouiller</span>
+              <Lock />
+              Verrouiller
             </button>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Déconnexion</span>
+              <LogOut />
+              Déconnexion
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Overlay mobile */}
+      {/* OVERLAY mobile */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col relative z-10">
-        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/50 border-b border-white/10">
+      {/* MAIN CONTENT FIXÉ */}
+      <div className="flex-1 ml-0 lg:ml-72 relative z-10">
+        
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="px-6 py-4 flex items-center justify-between">
             <button
+              className="lg:hidden p-2 rounded-xl hover:bg-white/5"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-white/5 transition-colors"
             >
-              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {sidebarOpen ? <X /> : <Menu />}
             </button>
           </div>
         </header>
 
-        {/* FIX : LE MAIN NE SCROLLE PLUS EN INTERNE */}
-        <main className="flex-1 p-6">
+        {/* LE SCROLL SE FAIT ICI (global, pas dans le main !) */}
+        <main className="p-6">
           {children}
         </main>
+
       </div>
     </div>
   );
