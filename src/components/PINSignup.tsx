@@ -20,12 +20,12 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
     e.preventDefault();
 
     if (!validatePin(pin)) {
-      showToast('PIN must be 4-6 digits', 'error');
+      showToast('Le code PIN doit contenir 4 à 6 chiffres', 'error');
       return;
     }
 
     if (pin !== confirmPin) {
-      showToast('PINs do not match', 'error');
+      showToast('Les codes PIN ne correspondent pas', 'error');
       return;
     }
 
@@ -64,12 +64,15 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
         });
 
         if (authData.session) {
-          showToast('Account created! You can now login.', 'success');
+          showToast('Compte créé ! Vous pouvez maintenant vous connecter.', 'success');
           setTimeout(() => {
             onBackToLogin();
           }, 1500);
         } else {
-          showToast('Account created! Please check your email to confirm, then login.', 'info');
+          showToast(
+            'Compte créé ! Vérifiez votre e-mail pour confirmer votre adresse, puis connectez-vous.',
+            'info'
+          );
           setTimeout(() => {
             onBackToLogin();
           }, 3000);
@@ -77,7 +80,7 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
       }
     } catch (error: any) {
       console.error('Signup error:', error);
-      showToast(error.message || 'Failed to create account', 'error');
+      showToast(error.message || 'Échec de création du compte', 'error');
     } finally {
       setLoading(false);
     }
@@ -94,7 +97,7 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
           className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Login
+          Retour à la connexion
         </button>
 
         <div className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl p-8 shadow-2xl">
@@ -105,16 +108,16 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
           </div>
 
           <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            Create Account
+            Créer un compte
           </h1>
           <p className="text-center text-gray-400 mb-8">
-            Join PhoneFlow Pro
+            Rejoignez PhoneFlow Pro
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="displayName" className="block text-sm font-medium text-gray-300 mb-2">
-                Display Name
+                Nom affiché
               </label>
               <input
                 id="displayName"
@@ -123,13 +126,13 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
-                placeholder="Your name"
+                placeholder="Votre nom"
               />
             </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                Adresse e-mail
               </label>
               <input
                 id="email"
@@ -138,13 +141,13 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
-                placeholder="your@email.com"
+                placeholder="votre@email.com"
               />
             </div>
 
             <div>
               <label htmlFor="pin" className="block text-sm font-medium text-gray-300 mb-2">
-                PIN (4-6 digits)
+                Code PIN (4 à 6 chiffres)
               </label>
               <input
                 id="pin"
@@ -161,7 +164,7 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
 
             <div>
               <label htmlFor="confirmPin" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm PIN
+                Confirmer le PIN
               </label>
               <input
                 id="confirmPin"
@@ -184,10 +187,10 @@ export const PINSignup: React.FC<PINSignupProps> = ({ onBackToLogin }) => {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating Account...
+                  Création du compte...
                 </>
               ) : (
-                'Create Account'
+                'Créer le compte'
               )}
             </button>
           </form>
