@@ -58,7 +58,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
       if (error) throw error;
       setRepairs(data || []);
     } catch (error) {
-      showToast('Failed to load repairs', 'error');
+      showToast("Échec du chargement des réparations", "error");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
         link.download = `${phone.model}-${phone.imei}-QR.png`;
         link.href = url;
         link.click();
-        showToast('QR Code downloaded', 'success');
+        showToast("QR Code téléchargé", "success");
       };
 
       img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
@@ -107,41 +107,53 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     }
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case "completed": return "Terminé";
+      case "in_progress": return "En cours";
+      case "failed": return "Échoué";
+      default: return "En attente";
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
+
+        {/* HEADER */}
         <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            Phone Details
+            Détails du téléphone
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
+
+          {/* INFOS GÉNÉRALES */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">General Information</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Informations générales</h3>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Model</p>
+                    <p className="text-sm text-gray-400 mb-1">Modèle</p>
                     <p className="text-white font-semibold">{phone.model}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Storage</p>
+                    <p className="text-sm text-gray-400 mb-1">Stockage</p>
                     <p className="text-white font-semibold">{phone.storage}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Color</p>
+                    <p className="text-sm text-gray-400 mb-1">Couleur</p>
                     <p className="text-white font-semibold">{phone.color}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Condition</p>
+                    <p className="text-sm text-gray-400 mb-1">État</p>
                     <p className="text-white font-semibold">{phone.condition}</p>
                   </div>
                   <div className="col-span-2">
@@ -151,30 +163,38 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                 </div>
               </div>
 
+              {/* RÉSUMÉ FINANCIER */}
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Financial Summary</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Résumé financier</h3>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Purchase Price</p>
+                    <p className="text-sm text-gray-400 mb-1">Prix d’achat</p>
                     <p className="text-white font-semibold text-lg">€{phone.purchase_price.toFixed(2)}</p>
                   </div>
+
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Purchase Date</p>
-                    <p className="text-white font-semibold">{new Date(phone.purchase_date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-400 mb-1">Date d’achat</p>
+                    <p className="text-white font-semibold">
+                      {new Date(phone.purchase_date).toLocaleDateString()}
+                    </p>
                   </div>
+
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Total Repair Cost</p>
+                    <p className="text-sm text-gray-400 mb-1">Total réparations</p>
                     <p className="text-orange-400 font-semibold text-lg">€{totalRepairCost.toFixed(2)}</p>
                   </div>
+
                   {phone.is_sold && phone.sale_price && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-400 mb-1">Sale Price</p>
+                        <p className="text-sm text-gray-400 mb-1">Prix de vente</p>
                         <p className="text-emerald-400 font-semibold text-lg">€{phone.sale_price.toFixed(2)}</p>
                       </div>
+
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-400 mb-1">Net Profit</p>
-                        <p className={`font-bold text-2xl ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <p className="text-sm text-gray-400 mb-1">Bénéfice net</p>
+                        <p className={`font-bold text-2xl ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                           €{netProfit.toFixed(2)}
                         </p>
                       </div>
@@ -183,6 +203,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                 </div>
               </div>
 
+              {/* NOTES */}
               {phone.notes && (
                 <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Notes</h3>
@@ -191,50 +212,46 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
               )}
             </div>
 
+            {/* QR CODE */}
             <div className="space-y-6">
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4 text-center">QR Code</h3>
+                <h3 className="text-lg font-bold text-white mb-4 text-center">Code QR</h3>
+
                 <div className="flex justify-center mb-4">
                   <div className="p-4 bg-white rounded-xl">
-                    <QRCodeSVG
-                      id="qr-code"
-                      value={phone.qr_code || phone.imei}
-                      size={180}
-                      level="H"
-                    />
+                    <QRCodeSVG id="qr-code" value={phone.qr_code || phone.imei} size={180} level="H" />
                   </div>
                 </div>
+
                 <button
                   onClick={downloadQR}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/30"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl"
                 >
                   <Download className="w-4 h-4" />
-                  Download QR
+                  Télécharger le QR
                 </button>
               </div>
 
+              {/* INDICATEUR VENDU */}
               {phone.is_sold && (
-                <div className="backdrop-blur-xl bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <span className="text-2xl">✓</span>
-                    </div>
-                    <p className="text-emerald-400 font-bold text-lg">SOLD</p>
-                    {phone.sale_date && (
-                      <p className="text-emerald-400/70 text-sm mt-1">
-                        {new Date(phone.sale_date).toLocaleDateString()}
-                      </p>
-                    )}
+                <div className="backdrop-blur-xl bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <span className="text-2xl">✓</span>
                   </div>
+                  <p className="text-emerald-400 font-bold text-lg">VENDU</p>
+                  {phone.sale_date && (
+                    <p className="text-emerald-400/70 text-sm mt-1">
+                      {new Date(phone.sale_date).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
+          {/* HISTORIQUE DES RÉPARATIONS */}
           <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">Repair History</h3>
-            </div>
+            <h3 className="text-xl font-bold text-white mb-4">Historique des réparations</h3>
 
             {loading ? (
               <div className="flex justify-center py-8">
@@ -242,7 +259,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
               </div>
             ) : repairs.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-400">No repairs recorded</p>
+                <p className="text-gray-400">Aucune réparation enregistrée</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -257,13 +274,15 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                         <p className="text-sm text-gray-400 whitespace-pre-wrap">{repair.repair_list}</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(repair.status)}`}>
-                        {repair.status}
+                        {translateStatus(repair.status)}
                       </span>
                     </div>
+
                     <div className="flex items-center justify-between pt-3 border-t border-white/10">
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-gray-400">Cost:</span>
+                        <span className="text-gray-400">Coût :</span>
                         <span className="text-orange-400 font-semibold">€{repair.cost.toFixed(2)}</span>
+
                         {repair.technician && (
                           <>
                             <span className="text-gray-400">•</span>
@@ -271,6 +290,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                           </>
                         )}
                       </div>
+
                       <span className="text-xs text-gray-500">
                         {new Date(repair.created_at).toLocaleDateString()}
                       </span>
@@ -280,6 +300,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>
