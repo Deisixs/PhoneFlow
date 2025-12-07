@@ -79,7 +79,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
                   PhoneFlow
                 </h1>
-                <p className="text-xs text-gray-400">Enterprise Pro</p>
+                <p className="text-xs text-gray-400">Gestion Pro</p>
               </div>
             </div>
           </div>
