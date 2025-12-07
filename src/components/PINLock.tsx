@@ -16,10 +16,10 @@ export const PINLock: React.FC = () => {
     const result = await unlock(pin);
 
     if (result.success) {
-      showToast('Unlocked successfully', 'success');
+      showToast('Déverrouillage réussi', 'success');
       setPin('');
     } else {
-      showToast(result.error || 'Invalid PIN', 'error');
+      showToast(result.error || 'Code PIN invalide', 'error');
       setPin('');
     }
 
@@ -28,7 +28,7 @@ export const PINLock: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    showToast('Logged out successfully', 'info');
+    showToast('Déconnexion réussie', 'info');
   };
 
   return (
@@ -45,10 +45,10 @@ export const PINLock: React.FC = () => {
           </div>
 
           <h1 className="text-2xl font-bold text-center mb-2 text-white">
-            Session Locked
+            Session verrouillée
           </h1>
           <p className="text-center text-gray-400 mb-8">
-            Enter your PIN to unlock
+            Entrez votre code PIN pour déverrouiller
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -74,10 +74,10 @@ export const PINLock: React.FC = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Unlocking...
+                  Déverrouillage...
                 </>
               ) : (
-                'Unlock'
+                'Déverrouiller'
               )}
             </button>
 
@@ -87,7 +87,7 @@ export const PINLock: React.FC = () => {
               className="w-full py-2 px-4 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-medium rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
             >
               <LogOut className="w-4 h-4" />
-              Logout
+              Se déconnecter
             </button>
           </form>
         </div>
