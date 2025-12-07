@@ -41,7 +41,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
-
     return () => {
       window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('keydown', handleActivity);
@@ -61,23 +60,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex text-white overflow-hidden relative">
+    <div className="min-h-screen flex text-white overflow-hidden bg-transparent">
 
-      {/* FOND VIOLET GLOBAL */}
-      <div className="fixed inset-0 bg-gradient-to-br from-violet-700/20 via-fuchsia-600/20 to-blue-600/20 pointer-events-none z-0" />
+      {/* FULL PAGE GRADIENT OVERLAY */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-gradient-to-br from-transparent via-purple-900/10 to-fuchsia-900/10" />
 
-      {/* SIDEBAR FIXE EN DESKTOP */}
+      {/* SIDEBAR (FIXE) */}
       <aside
-        className={`
-          fixed top-0 left-0 
-          h-screen w-72 
-          z-40 
-          backdrop-blur-2xl bg-black/30 border-r border-white/10 
-          transition-transform duration-300
+        className={`fixed lg:relative z-40 h-screen w-72 
+          backdrop-blur-2xl bg-gradient-to-br from-[#1a0d30]/90 to-[#0b0318]/90 
+          border-r border-white/10 transition-transform duration-300
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         <div className="flex flex-col h-full">
+
+          {/* Logo section */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -92,6 +90,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => (
               <NavLink
@@ -101,7 +100,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 text-white border border-violet-500/30 shadow-lg shadow-violet-500/20'
+                      ? 'bg-gradient-to-r from-violet-600/30 to-fuchsia-600/30 text-white border border-violet-500/30 shadow-lg shadow-violet-500/20'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`
                 }
@@ -112,27 +111,26 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             ))}
           </nav>
 
+          {/* Bottom buttons */}
           <div className="p-4 border-t border-white/10 space-y-2">
             <button
               onClick={handleLock}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
             >
-              <Lock className="w-5 h-5" />
-              Verrouiller
+              <Lock className="w-5 h-5" /> Verrouiller
             </button>
 
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
             >
-              <LogOut className="w-5 h-5" />
-              Déconnexion
+              <LogOut className="w-5 h-5" /> Déconnexion
             </button>
           </div>
         </div>
       </aside>
 
-      {/* OVERLAY MOBILE */}
+      {/* MOBILE BACKDROP */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
@@ -140,9 +138,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* CONTENU PRINCIPAL */}
-      <div className="flex-1 flex flex-col min-h-screen ml-0 lg:ml-72 relative z-10">
-        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/40 border-b border-white/10">
+      {/* MAIN CONTENT */}
+      <div className="flex-1 flex flex-col min-h-screen relative z-10">
+
+        {/* Header */}
+        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/20 border-b border-white/10">
           <div className="px-6 py-4 flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -150,13 +150,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <div className="flex-1" />
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-6">
+        {/* Content */}
+        <main className="flex-1 overflow-auto p-6 bg-transparent">
           {children}
         </main>
+
       </div>
     </div>
   );
