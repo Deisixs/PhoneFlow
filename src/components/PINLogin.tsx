@@ -19,9 +19,9 @@ export const PINLogin: React.FC = () => {
     const result = await login(email, pin);
 
     if (result.success) {
-      showToast('Welcome back!', 'success');
+      showToast('Bienvenue !', 'success');
     } else {
-      showToast(result.error || 'Login failed', 'error');
+      showToast(result.error || 'Échec de la connexion', 'error');
     }
 
     setLoading(false);
@@ -48,7 +48,7 @@ export const PINLogin: React.FC = () => {
             PhoneFlow Pro
           </h1>
           <p className="text-center text-gray-400 mb-8">
-            Enterprise Smartphone Management
+            Gestion professionnelle de smartphones
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -63,13 +63,13 @@ export const PINLogin: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
-                placeholder="your@email.com"
+                placeholder="votre@email.com"
               />
             </div>
 
             <div>
               <label htmlFor="pin" className="block text-sm font-medium text-gray-300 mb-2">
-                PIN (4-6 digits)
+                Code PIN (4 à 6 chiffres)
               </label>
               <input
                 id="pin"
@@ -92,22 +92,22 @@ export const PINLogin: React.FC = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Authenticating...
+                  Connexion...
                 </>
               ) : (
-                'Sign In'
+                'Se connecter'
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm">
-              Don't have an account?{' '}
+              Pas encore de compte ?{' '}
               <button
                 onClick={() => setShowSignup(true)}
                 className="text-violet-400 hover:text-violet-300 font-semibold transition-colors"
               >
-                Create one
+                Créer un compte
               </button>
             </p>
           </div>
