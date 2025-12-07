@@ -53,19 +53,24 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ----------------------------- */
-/*  FOND VIOLET GLOBAL AJOUTÉ    */
-/* ----------------------------- */
 body {
   margin: 0;
-  background-color: #0f051d !important; /* Violet profond */
+
+  /* 👉 FOND GLOBAL DEGRADE VIOLET/NOIR */
+  background: radial-gradient(circle at top left,
+    #1b0f2f 0%,
+    #12091f 40%,
+    #080510 100%
+  ) !important;
+
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-color: #0c0614;
   color: white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
 }
 
-/* Scrollbar styling */
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -85,33 +90,24 @@ body {
   background: rgba(139, 92, 246, 0.5);
 }
 
+/* Fix chiffres */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+input[type="number"] { -moz-appearance: textfield; }
 
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-/* Backdrop blur fixes */
+/* Backdrop support */
 @supports (backdrop-filter: blur(20px)) {
-  .backdrop-blur-xl {
-    backdrop-filter: blur(20px);
-  }
-  .backdrop-blur-2xl {
-    backdrop-filter: blur(40px);
-  }
+  .backdrop-blur-xl { backdrop-filter: blur(20px); }
+  .backdrop-blur-2xl { backdrop-filter: blur(40px); }
 }
 
-/* Motion reduction */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
