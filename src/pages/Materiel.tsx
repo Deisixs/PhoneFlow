@@ -128,12 +128,12 @@ export default function Materiel() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Matériel & Consommables</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Matériel & Consommables</h1>
           <p className="text-gray-400 mt-1">Suivez vos dépenses d'outils et consommables</p>
         </div>
         <button
           onClick={() => openModal()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:scale-105"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
         >
           <Plus size={20} />
           Ajouter une dépense
@@ -191,7 +191,7 @@ export default function Materiel() {
               onClick={() => setFilterCategory('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 filterCategory === 'all'
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
                   : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -203,7 +203,7 @@ export default function Materiel() {
                 onClick={() => setFilterCategory(cat)}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${
                   filterCategory === cat
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
                     : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -253,7 +253,7 @@ export default function Materiel() {
                       <div className="font-medium text-white">{expense.description}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                         {expense.category}
                       </span>
                     </td>
@@ -264,7 +264,7 @@ export default function Materiel() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openModal(expense)}
-                          className="p-2 text-violet-400 hover:bg-violet-500/20 rounded-lg transition-colors"
+                          className="p-2 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors"
                           title="Modifier"
                         >
                           <Pencil size={18} />
