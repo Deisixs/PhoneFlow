@@ -52,117 +52,117 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {piece ? 'Modifier la pièce' : 'Ajouter une pièce'}
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="w-full max-w-2xl bg-black/40 border border-white/10 backdrop-blur-2xl rounded-2xl shadow-2xl">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-white/10">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            {piece ? "Modifier la pièce" : "Ajouter une pièce"}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition"
+          >
+            <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-6 py-6 space-y-5">
+
+          {/* Nom */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nom de la pièce *
-            </label>
+            <label className="text-sm font-medium text-gray-300">Nom de la pièce *</label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ex: Écran iPhone 12"
+              className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/50 outline-none"
+              placeholder="Ex : Écran iPhone 13"
             />
           </div>
 
+          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
+            <label className="text-sm font-medium text-gray-300">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/50 outline-none"
               rows={3}
               placeholder="Description de la pièce..."
             />
           </div>
 
+          {/* Prix & quantité */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prix d'achat (€) *
-              </label>
+              <label className="text-sm font-medium text-gray-300">Prix d'achat (€) *</label>
               <input
                 type="number"
                 required
-                step="0.01"
-                min="0"
                 value={formData.purchase_price}
                 onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/50 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quantité *
-              </label>
+              <label className="text-sm font-medium text-gray-300">Quantité *</label>
               <input
                 type="number"
                 required
-                min="0"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/50 outline-none"
               />
             </div>
           </div>
 
+          {/* Fournisseur */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fournisseur
-            </label>
+            <label className="text-sm font-medium text-gray-300">Fournisseur</label>
             <input
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ex: AliExpress, Amazon..."
+              className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/50 outline-none"
+              placeholder="Ex : AliExpress, Amazon..."
             />
           </div>
 
+          {/* Lien */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lien du produit
-            </label>
+            <label className="text-sm font-medium text-gray-300">Lien du produit</label>
             <input
               type="url"
               value={formData.supplier_link}
               onChange={(e) => setFormData({ ...formData, supplier_link: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 mt-1 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/50 outline-none"
               placeholder="https://..."
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Boutons */}
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50"
+              className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition"
             >
               Annuler
             </button>
+
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 shadow-lg text-white font-semibold transition"
             >
-              {piece ? 'Mettre à jour' : 'Ajouter'}
+              {piece ? "Mettre à jour" : "Ajouter"}
             </button>
           </div>
+
         </form>
       </div>
     </div>
