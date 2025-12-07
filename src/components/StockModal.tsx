@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
 
 interface StockPiece {
   id?: string;
   name: string;
   description: string;
   purchase_price: number;
+  quantity: number;
   supplier: string;
   supplier_link: string;
-  quantity: number;
 }
 
 interface StockModalProps {
@@ -20,12 +20,12 @@ interface StockModalProps {
 
 export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockModalProps) {
   const [formData, setFormData] = useState<StockPiece>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     purchase_price: 0,
-    supplier: '',
-    supplier_link: '',
     quantity: 0,
+    supplier: "",
+    supplier_link: ""
   });
 
   useEffect(() => {
@@ -33,12 +33,12 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
       setFormData(piece);
     } else {
       setFormData({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         purchase_price: 0,
-        supplier: '',
-        supplier_link: '',
         quantity: 0,
+        supplier: "",
+        supplier_link: ""
       });
     }
   }, [piece, isOpen]);
@@ -52,33 +52,27 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto 
-        backdrop-blur-2xl bg-neutral-900/60 border border-white/10 
-        rounded-2xl shadow-2xl">
+      bg-neutral-900/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
 
-        {/* Header */}
-        <div className="sticky top-0 z-10 backdrop-blur-xl bg-neutral-900/40 
-          border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        {/* HEADER IDENTIQUE À PHONEMODAL */}
+        <div className="sticky top-0 z-10 bg-neutral-900/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
             {piece ? "Modifier une pièce" : "Ajouter une pièce"}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          >
+
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* FORMULAIRE */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
           {/* Nom */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Nom de la pièce *
-            </label>
+            <label className="text-sm text-gray-300 mb-1 block">Nom *</label>
             <input
               type="text"
               required
@@ -92,9 +86,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
+            <label className="text-sm text-gray-300 mb-1 block">Description</label>
             <textarea
               rows={4}
               value={formData.description}
@@ -105,33 +97,29 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
             />
           </div>
 
+          {/* Prix + Quantité */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Prix */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Prix d'achat (€) *
-              </label>
+              <label className="text-sm text-gray-300 mb-1 block">Prix d'achat (€) *</label>
               <input
                 type="number"
-                step="0.01"
-                required
                 value={formData.purchase_price}
-                onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })
+                }
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
                 text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
               />
             </div>
 
-            {/* Quantité */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Quantité *
-              </label>
+              <label className="text-sm text-gray-300 mb-1 block">Quantité *</label>
               <input
                 type="number"
-                required
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, quantity: parseInt(e.target.value) })
+                }
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
                 text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
               />
@@ -140,9 +128,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
 
           {/* Fournisseur */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Fournisseur
-            </label>
+            <label className="text-sm text-gray-300 mb-1 block">Fournisseur</label>
             <input
               type="text"
               value={formData.supplier}
@@ -155,9 +141,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
 
           {/* Lien */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Lien du produit
-            </label>
+            <label className="text-sm text-gray-300 mb-1 block">Lien du produit</label>
             <input
               type="url"
               value={formData.supplier_link}
@@ -169,21 +153,21 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
           </div>
 
           {/* Boutons */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-4 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white 
-              rounded-xl transition"
+              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 
+              rounded-xl text-white transition"
             >
               Annuler
             </button>
 
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r 
-              from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 
-              text-white font-semibold rounded-xl shadow-lg"
+              className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white 
+              bg-gradient-to-r from-violet-600 to-fuchsia-600 
+              hover:from-violet-500 hover:to-fuchsia-500 shadow-lg"
             >
               {piece ? "Mettre à jour" : "Ajouter"}
             </button>
