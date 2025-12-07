@@ -61,17 +61,17 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           .eq('id', repair.id);
 
         if (error) throw error;
-        showToast('Repair updated successfully', 'success');
+        showToast('Réparation modifiée avec succès', 'success');
       } else {
         const { error } = await supabase.from('repairs').insert(repairData);
 
         if (error) throw error;
-        showToast('Repair added successfully', 'success');
+        showToast('Réparation ajoutée avec succès', 'success');
       }
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Failed to save repair', 'error');
+      showToast(error.message || 'Erreur lors de l’enregistrement', 'error');
     } finally {
       setLoading(false);
     }
@@ -80,9 +80,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
+
         <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {repair ? 'Edit Repair' : 'Add New Repair'}
+            {repair ? 'Modifier la réparation' : 'Ajouter une réparation'}
           </h2>
           <button
             onClick={onClose}
@@ -93,15 +94,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Phone</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Téléphone</label>
             <select
               value={formData.phone_id}
               onChange={(e) => setFormData({ ...formData, phone_id: e.target.value })}
               required
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
             >
-              <option value="" className="bg-gray-900">Select a phone</option>
+              <option value="" className="bg-gray-900">Sélectionner un téléphone</option>
               {phones.map((phone) => (
                 <option key={phone.id} value={phone.id} className="bg-gray-900">
                   {phone.model} - {phone.imei}
@@ -117,97 +119,101 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               required
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-              placeholder="Screen replacement, battery swap, etc."
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+              placeholder="Changement d'écran, batterie, etc."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Repair Details</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Détails de la réparation</label>
             <textarea
               value={formData.repair_list}
               onChange={(e) => setFormData({ ...formData, repair_list: e.target.value })}
               required
               rows={4}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
-              placeholder="List all repairs performed..."
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
+              placeholder="Liste de toutes les réparations effectuées..."
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Cost (€)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Coût (€)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Statut</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               >
-                <option value="pending" className="bg-gray-900">Pending</option>
-                <option value="in_progress" className="bg-gray-900">In Progress</option>
-                <option value="completed" className="bg-gray-900">Completed</option>
-                <option value="failed" className="bg-gray-900">Failed</option>
+                <option value="pending" className="bg-gray-900">En attente</option>
+                <option value="in_progress" className="bg-gray-900">En cours</option>
+                <option value="completed" className="bg-gray-900">Terminée</option>
+                <option value="failed" className="bg-gray-900">Échec</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Technician (Optional)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Technicien (Optionnel)</label>
               <input
                 type="text"
                 value={formData.technician}
                 onChange={(e) => setFormData({ ...formData, technician: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                placeholder="John Doe"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+                placeholder="Jean Dupont"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Photo URL (Optional)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">URL Photo (Optionnel)</label>
               <input
                 type="url"
                 value={formData.photo_url}
                 onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
                 placeholder="https://..."
               />
             </div>
+
           </div>
 
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all"
+              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition"
             >
-              Cancel
+              Annuler
             </button>
+
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
+                  Enregistrement...
                 </>
               ) : (
-                'Save Repair'
+                'Enregistrer la réparation'
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>
