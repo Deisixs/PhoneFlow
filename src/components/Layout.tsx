@@ -61,13 +61,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-fuchsia-500/10 to-blue-600/10 pointer-events-none" />
+    <div className="min-h-screen flex text-white overflow-hidden relative">
 
+      {/* FOND VIOLET GLOBAL */}
+      <div className="fixed inset-0 bg-gradient-to-br from-violet-700/20 via-fuchsia-600/20 to-blue-600/20 pointer-events-none z-0" />
+
+      {/* SIDEBAR FIXE EN DESKTOP */}
       <aside
-        className={`fixed lg:relative z-40 h-screen w-72 backdrop-blur-2xl bg-white/5 border-r border-white/10 transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`
+          fixed top-0 left-0 
+          h-screen w-72 
+          z-40 
+          backdrop-blur-2xl bg-black/30 border-r border-white/10 
+          transition-transform duration-300
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
       >
         <div className="flex flex-col h-full">
           <div className="p-6 border-b border-white/10">
@@ -107,22 +115,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="p-4 border-t border-white/10 space-y-2">
             <button
               onClick={handleLock}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-200"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5"
             >
               <Lock className="w-5 h-5" />
-              <span className="font-medium">Verrouiller</span>
+              Verrouiller
             </button>
+
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10"
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-medium">Déconnexion</span>
+              Déconnexion
             </button>
           </div>
         </div>
       </aside>
 
+      {/* OVERLAY MOBILE */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
@@ -130,8 +140,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-h-screen relative">
-        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/50 border-b border-white/10">
+      {/* CONTENU PRINCIPAL */}
+      <div className="flex-1 flex flex-col min-h-screen ml-0 lg:ml-72 relative z-10">
+        <header className="sticky top-0 z-20 backdrop-blur-xl bg-black/40 border-b border-white/10">
           <div className="px-6 py-4 flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
