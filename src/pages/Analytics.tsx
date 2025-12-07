@@ -234,7 +234,7 @@ export function Analytics() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0b2e] via-[#140923] to-[#0d0815] p-6 space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
