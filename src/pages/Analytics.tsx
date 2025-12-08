@@ -128,41 +128,65 @@ export function Analytics() {
     };
   };
 
-  const calculateStats = () => {
-    const filtered = getFilteredDataByTimeRange();
+ const calculateStats = () => {
+  const filtered = getFilteredDataByTimeRange();
 
-    const totalPurchased = filtered.phones.length;
-    const totalSold = filtered.phones.filter((p) => p.sold_at).length;
+  // Téléphones achetés / vendus
+  const totalPurchased = filtered.phones.length;
+  const totalSold = filtered.phones.filter((p) => p.sold_at).length;
 
-    const totalRevenue = filtered.phones
+  // CA téléphones = somme des prix de vente
+  const totalPhoneCA = filtered.phones
+    .filter((p) => p.sold_at)
+    .reduce((sum, p) => sum + (p.selling_price || 0), 0);
+
+  // CA réparations = prix facturé au client (r.cost)
+  const totalRepairCA = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
+
+  // CA = CA téléphones + CA réparations
+  const ca = totalPhoneCA + totalRepairCA;
+
+  // Coûts :
+  const totalPurchaseCost = filtered.phones.reduce(
+    (sum, p) => sum + p.purchase_price,
+    0
+  );
+
+  const totalRepairCost = filtered.repairs.reduce(
+    (sum, r) => sum + r.cost,
+    0
+  ); // ATTENTION : c’est le CA des réparations, pas ton coût réel pièce → voir plus tard avec pièces utilisées
+
+  const totalMaterielCost = filtered.materielExpenses.reduce(
+    (sum, m) => sum + m.amount,
+    0
+  );
+
+  // Bénéfice net = ventes téléphones - coûts téléphones - matériel
+  // (les réparations ne comptent PAS comme bénéfice)
+  const revenue =
+    (filtered.phones
       .filter((p) => p.sold_at)
-      .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
+      .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0)
+    ) - totalMaterielCost;
 
-    const totalRepairCost = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
+  // Valeur stock pièces
+  const totalStockValue = filtered.stockPieces.reduce(
+    (sum, s) => sum + s.purchase_price * s.quantity,
+    0
+  );
 
-    const totalMaterielCost = filtered.materielExpenses.reduce((sum, m) => sum + m.amount, 0);
-
-    const totalStockValue = filtered.stockPieces.reduce(
-      (sum, s) => sum + s.purchase_price * s.quantity,
-      0
-    );
-
-    const revenue = totalRevenue + totalRepairCost - totalMaterielCost;
-
-    const ca = filtered.phones
-      .filter((p) => p.sold_at)
-      .reduce((sum, p) => sum + (p.selling_price || 0), 0) + totalRepairCost;
-
-    return {
-      ca,
-      revenue,
-      totalPurchased,
-      totalSold,
-      totalMaterielCost,
-      totalStockValue,
-      totalRepairCost,
-    };
+  return {
+    ca,
+    revenue,
+    totalPurchased,
+    totalSold,
+    totalMaterielCost,
+    totalStockValue,
+    totalRepairCost: totalRepairCA, // affichage seulement
   };
+};
+
 
   const generateChartData = () => {
     const filtered = getFilteredDataByTimeRange();
