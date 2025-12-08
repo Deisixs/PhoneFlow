@@ -128,25 +128,22 @@ export function Analytics() {
     };
   };
 
- const calculateStats = () => {
+const calculateStats = () => {
   const filtered = getFilteredDataByTimeRange();
 
   // Téléphones achetés / vendus
   const totalPurchased = filtered.phones.length;
   const totalSold = filtered.phones.filter((p) => p.sold_at).length;
 
-  // CA téléphones = somme des prix de vente
+  // VENTES (CA téléphones seulement)
   const totalPhoneCA = filtered.phones
     .filter((p) => p.sold_at)
     .reduce((sum, p) => sum + (p.selling_price || 0), 0);
 
-  // CA réparations = prix facturé au client (r.cost)
-  const totalRepairCA = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
+  // CA = uniquement ventes téléphones
+  const ca = totalPhoneCA;
 
-  // CA = CA téléphones + CA réparations
-  const ca = totalPhoneCA + totalRepairCA;
-
-  // Coûts :
+  // COÛTS (achats, réparations, matériel)
   const totalPurchaseCost = filtered.phones.reduce(
     (sum, p) => sum + p.purchase_price,
     0
@@ -155,37 +152,37 @@ export function Analytics() {
   const totalRepairCost = filtered.repairs.reduce(
     (sum, r) => sum + r.cost,
     0
-  ); // ATTENTION : c’est le CA des réparations, pas ton coût réel pièce → voir plus tard avec pièces utilisées
+  ); // maintenant un coût SEULEMENT
 
   const totalMaterielCost = filtered.materielExpenses.reduce(
     (sum, m) => sum + m.amount,
     0
   );
 
-  // Bénéfice net = ventes téléphones - coûts téléphones - matériel
-  // (les réparations ne comptent PAS comme bénéfice)
+  // BENEFICE : ventes - achats - réparations - matériel
   const revenue =
-    (filtered.phones
-      .filter((p) => p.sold_at)
-      .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0)
-    ) - totalMaterielCost;
+    totalPhoneCA -
+    totalPurchaseCost -
+    totalRepairCost -
+    totalMaterielCost;
 
-  // Valeur stock pièces
+  // Valeur du stock pièces
   const totalStockValue = filtered.stockPieces.reduce(
     (sum, s) => sum + s.purchase_price * s.quantity,
     0
   );
 
   return {
-    ca,
-    revenue,
+    ca,                    // uniquement ventes
+    revenue,               // bénéfice net réel
     totalPurchased,
     totalSold,
     totalMaterielCost,
     totalStockValue,
-    totalRepairCost: totalRepairCA, // affichage seulement
+    totalRepairCost,       // affichage simple
   };
 };
+
 
 
   const generateChartData = () => {
