@@ -404,34 +404,41 @@ const calculateStats = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {/* PIE CHART FIXÉ */}
+<div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
+  <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
+
+  <ResponsiveContainer width="100%" height={300}>
+    <PieChart>
+      <Pie
+        data={pieData}
+        cx="50%"
+        cy="50%"
+        outerRadius={100}
+        paddingAngle={4}        // <-- évite que les parts se superposent
+        labelLine={false}
+        label={({ name, percent }) =>
+          `${name}: ${(percent * 100).toFixed(0)}%`
+        }
+        dataKey="value"
+      >
+        {pieData.map((entry, index) => (
+          <Cell key={`cell-${index}`} fill={entry.color} />
+        ))}
+      </Pie>
+
+      <Tooltip
+        offset={25}            // <-- Tooltip décalé pour ne plus cacher les labels
+        contentStyle={{
+          backgroundColor: '#1f2937',
+          border: '1px solid #374151',
+          borderRadius: '8px',
+        }}
+      />
+    </PieChart>
+  </ResponsiveContainer>
+</div>
+
 
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-white mb-6">Comparaison des dépenses</h3>
