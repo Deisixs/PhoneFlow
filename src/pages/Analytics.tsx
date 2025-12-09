@@ -361,7 +361,7 @@ const calculateStats = () => {
             <span className="text-sm text-gray-400">Réparations</span>
           </div>
           <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Revenus des réparations</p>
+          <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
         </div>
       </div>
 
