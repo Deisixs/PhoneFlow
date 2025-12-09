@@ -221,18 +221,23 @@ const calculateStats = () => {
   };
 
   const generatePieData = () => {
-    const filtered = getFilteredDataByTimeRange();
+  const filtered = getFilteredDataByTimeRange();
 
-    const repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
-    const phoneRevenue = filtered.phones
-      .filter((p) => p.sold_at)
-      .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
+  let repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
+  let phoneRevenue = filtered.phones
+    .filter((p) => p.sold_at)
+    .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
 
-    return [
-      { name: 'Vente téléphones', value: phoneRevenue, color: '#8b5cf6' },
-      { name: 'Réparations', value: repairRevenue, color: '#ec4899' },
-    ];
-  };
+  // Empêcher les valeurs négatives qui cassent le PIE chart
+  repairRevenue = Math.max(repairRevenue, 0);
+  phoneRevenue = Math.max(phoneRevenue, 0);
+
+  return [
+    { name: 'Vente téléphones', value: phoneRevenue, color: '#8b5cf6' },
+    { name: 'Réparations', value: repairRevenue, color: '#ec4899' },
+  ];
+};
+
 
   const stats = calculateStats();
   const chartData = generateChartData();
