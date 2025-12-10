@@ -25,6 +25,20 @@ const CATEGORIES = [
   'Autres'
 ];
 
+// --- GESTION VIRGULE / POINT ---
+const parsePriceInput = (val: string) => {
+  if (!val.trim()) return "";
+  val = val.replace(",", ".");
+  const parsed = parseFloat(val);
+  return isNaN(parsed) ? "" : parsed;
+};
+
+const formatPriceDisplay = (n: number | null) => {
+  if (n === null || n === undefined) return "";
+  return n.toString().replace(".", ",");
+};
+// -------------------------------
+
 export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: MaterielModalProps) {
   const [formData, setFormData] = useState<MaterielExpense>({
     description: '',
@@ -93,23 +107,31 @@ export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: Ma
 
           {/* AMOUNT + CATEGORY */}
           <div className="grid grid-cols-2 gap-4">
+            
+            {/* MONTANT € */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Montant (€) *
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 required
-                step="0.01"
-                min="0"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                value={formatPriceDisplay(formData.amount)}
+                onChange={(e) => {
+                  const parsed = parsePriceInput(e.target.value);
+                  setFormData({
+                    ...formData,
+                    amount: parsed === "" ? 0 : parsed
+                  });
+                }}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
                 text-white placeholder-gray-500 focus:outline-none focus:ring-2 
                 focus:ring-violet-500/50"
               />
             </div>
 
+            {/* CATÉGORIE */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Catégorie *
@@ -126,6 +148,7 @@ export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: Ma
                 ))}
               </select>
             </div>
+
           </div>
 
           {/* DATE */}
