@@ -5,6 +5,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
 import { generateQRCode } from '../lib/auth';
 
+// remmplacer les . par , dans les prix
+
+const normalizePrice = (value: string) => {
+  if (!value) return "";
+  value = value.replace(",", ".");
+  const number = parseFloat(value);
+  return isNaN(number) ? "" : number.toFixed(2);
+};
+
+
 interface Phone {
   id: string;
   model: string;
