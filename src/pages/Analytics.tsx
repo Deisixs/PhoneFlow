@@ -186,39 +186,77 @@ const calculateStats = () => {
 
 
   const generateChartData = () => {
-    const filtered = getFilteredDataByTimeRange();
-    const dataMap = new Map<string, { date: string; revenue: number; ca: number; expenses: number }>();
+  const filtered = getFilteredDataByTimeRange();
+  const dataMap = new Map<
+    string,
+    { date: string; ca: number; revenue: number }
+  >();
 
-    filtered.phones.forEach((phone) => {
-      if (phone.sold_at) {
-        const date = new Date(phone.sold_at).toISOString().split('T')[0];
-        const existing = dataMap.get(date) || { date, revenue: 0, ca: 0, expenses: 0 };
-        existing.ca += phone.selling_price || 0;
-        existing.revenue += (phone.selling_price || 0) - phone.purchase_price;
-        dataMap.set(date, existing);
-      }
-    });
+  // --- 1️⃣ CA : uniquement ventes téléphones
+  filtered.phones.forEach((phone) => {
+    if (phone.sold_at) {
+      const date = new Date(phone.sold_at).toISOString().split("T")[0];
 
-    filtered.repairs.forEach((repair) => {
-      if (repair.completed_at) {
-        const date = new Date(repair.completed_at).toISOString().split('T')[0];
-        const existing = dataMap.get(date) || { date, revenue: 0, ca: 0, expenses: 0 };
-        existing.ca += repair.cost;
-        existing.revenue += repair.cost;
-        dataMap.set(date, existing);
-      }
-    });
+      const sellingPrice = phone.selling_price || 0;
+      const purchasePrice = phone.purchase_price || 0;
 
-    filtered.materielExpenses.forEach((expense) => {
-      const date = new Date(expense.purchase_date).toISOString().split('T')[0];
-      const existing = dataMap.get(date) || { date, revenue: 0, ca: 0, expenses: 0 };
-      existing.expenses += expense.amount;
-      existing.revenue -= expense.amount;
+      const existing = dataMap.get(date) || {
+        date,
+        ca: 0,
+        revenue: 0,
+      };
+
+      // CA = seulement prix de vente
+      existing.ca += sellingPrice;
+
+      // Le bénéfice sera calculé après (voir plus bas)
+
+      existing.revenue += sellingPrice - purchasePrice;
+
       dataMap.set(date, existing);
-    });
+    }
+  });
 
-    return Array.from(dataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-  };
+  // --- 2️⃣ Coût des réparations : soustraire du bénéfice
+  filtered.repairs.forEach((repair) => {
+    const date = repair.completed_at
+      ? new Date(repair.completed_at).toISOString().split("T")[0]
+      : null;
+
+    if (!date) return;
+
+    const existing = dataMap.get(date) || {
+      date,
+      ca: 0,
+      revenue: 0,
+    };
+
+    // réparer = coût → réduire bénéfice mais PAS CA
+    existing.revenue -= repair.cost;
+
+    dataMap.set(date, existing);
+  });
+
+  // --- 3️⃣ Coût matériel : retirer aussi du bénéfice
+  filtered.materielExpenses.forEach((exp) => {
+    const date = new Date(exp.purchase_date).toISOString().split("T")[0];
+
+    const existing = dataMap.get(date) || {
+      date,
+      ca: 0,
+      revenue: 0,
+    };
+
+    existing.revenue -= exp.amount;
+
+    dataMap.set(date, existing);
+  });
+
+  return [...dataMap.values()].sort((a, b) =>
+    a.date.localeCompare(b.date)
+  );
+};
+
 
   const generatePieData = () => {
   const filtered = getFilteredDataByTimeRange();
