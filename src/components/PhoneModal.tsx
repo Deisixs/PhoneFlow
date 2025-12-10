@@ -5,13 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
 import { generateQRCode } from '../lib/auth';
 
-const normalizePrice = (value: string) => {
-  if (!value) return "";
-  value = value.replace(",", ".");
-  const number = parseFloat(value);
-  return isNaN(number) ? "" : number.toFixed(2);
-};
-
 interface Phone {
   id: string;
   model: string;
@@ -45,8 +38,21 @@ interface PhoneModalProps {
 const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB'];
 const CONDITION_OPTIONS = ['Neuf', 'Excellent', 'Très bon', 'Moyen', 'Mauvais'];
 
-export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose, onSave }) => {
+// ---- GESTION VIRGULE / POINT ---- //
+const parsePriceInput = (val: string) => {
+  if (!val.trim()) return "";
+  val = val.replace(",", ".");
+  const parsed = parseFloat(val);
+  return isNaN(parsed) ? "" : parsed;
+};
 
+const formatPriceDisplay = (n: number | null) => {
+  if (n === null || n === undefined) return "";
+  return n.toString().replace(".", ",");
+};
+// -------------------------------- //
+
+export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     model: phone?.model || '',
     storage: phone?.storage || '128GB',
@@ -114,10 +120,9 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* --- MODEL --- */}
+
+            {/* Modèle */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Modèle</label>
               <input
@@ -126,15 +131,17 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                placeholder="iPhone 14 Pro"
               />
             </div>
 
-            {/* --- STORAGE --- */}
+            {/* Stockage */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Stockage</label>
               <select
                 value={formData.storage}
                 onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               >
                 {STORAGE_OPTIONS.map((s) => (
@@ -143,34 +150,39 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               </select>
             </div>
 
-            {/* --- COLOR --- */}
+            {/* Couleur */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Couleur</label>
               <input
                 type="text"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                placeholder="Noir sidéral"
               />
             </div>
 
-            {/* --- IMEI --- */}
+            {/* IMEI */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">IMEI</label>
               <input
                 type="text"
                 value={formData.imei}
                 onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                placeholder="123456789012345"
               />
             </div>
 
-            {/* --- CONDITION --- */}
+            {/* Condition */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">État</label>
               <select
                 value={formData.condition}
                 onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               >
                 {CONDITION_OPTIONS.map((c) => (
@@ -179,50 +191,40 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               </select>
             </div>
 
-            {/* --- PURCHASE PRICE (CORRIGÉ FR) --- */}
+            {/* Prix d'achat */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Prix d'achat (€)</label>
               <input
                 type="text"
                 inputMode="decimal"
-                value={formData.purchase_price.toString().replace(".", ",")}
+                value={formatPriceDisplay(formData.purchase_price)}
                 onChange={(e) => {
-                  const clean = e.target.value.replace(",", ".");
-                  setFormData({
-                    ...formData,
-                    purchase_price: parseFloat(clean) || 0
-                  });
+                  const parsed = parsePriceInput(e.target.value);
+                  setFormData({ ...formData, purchase_price: parsed === "" ? 0 : parsed });
                 }}
-                onBlur={(e) => {
-                  const normalized = normalizePrice(e.target.value);
-                  setFormData({
-                    ...formData,
-                    purchase_price: parseFloat(normalized) || 0
-                  });
-                }}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
             </div>
 
-            {/* --- PURCHASE DATE --- */}
+            {/* Date d'achat */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Date d'achat</label>
               <input
                 type="date"
                 value={formData.purchase_date}
                 onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
             </div>
 
-            {/* --- ACCOUNT --- */}
+            {/* Compte d'achat */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Compte d'achat</label>
               <select
                 value={formData.purchase_account_id || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, purchase_account_id: e.target.value || null })
-                }
+                onChange={(e) => setFormData({ ...formData, purchase_account_id: e.target.value || null })}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               >
                 <option value="" className="bg-gray-900">Aucun / Non spécifié</option>
@@ -234,7 +236,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
           </div>
 
-          {/* --- NOTES --- */}
+          {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
             <textarea
@@ -242,10 +244,11 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none"
+              placeholder="Notes supplémentaires..."
             />
           </div>
 
-          {/* --- SOLD CHECKBOX --- */}
+          {/* Checkbox vendu */}
           <div className="border-t border-white/10 pt-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -264,34 +267,26 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
             </label>
           </div>
 
-          {/* --- SALE PRICE (CORRIGÉ FR) --- */}
+          {/* Prix + date de vente */}
           {formData.is_sold && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-down">
-              
+
+              {/* Prix de vente */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Prix de vente (€)</label>
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={(formData.sale_price ?? "").toString().replace(".", ",")}
+                  value={formatPriceDisplay(formData.sale_price)}
                   onChange={(e) => {
-                    const clean = e.target.value.replace(",", ".");
-                    setFormData({
-                      ...formData,
-                      sale_price: parseFloat(clean) || null
-                    });
-                  }}
-                  onBlur={(e) => {
-                    const normalized = normalizePrice(e.target.value);
-                    setFormData({
-                      ...formData,
-                      sale_price: parseFloat(normalized) || null
-                    });
+                    const parsed = parsePriceInput(e.target.value);
+                    setFormData({ ...formData, sale_price: parsed === "" ? null : parsed });
                   }}
                   className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
                 />
               </div>
 
+              {/* Date de vente */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Date de vente</label>
                 <input
@@ -305,7 +300,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
             </div>
           )}
 
-          {/* --- BUTTONS --- */}
+          {/* Boutons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
