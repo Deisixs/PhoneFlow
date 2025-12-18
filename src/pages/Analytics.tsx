@@ -28,13 +28,14 @@ import { useAuth } from '../contexts/AuthContext';
 
 type TimeRange = '7days' | '30days' | '90days' | '1year' | 'all';
 
+// CORRECTION ICI : J'ai mis à jour l'interface pour correspondre à ta capture d'écran console
 interface Phone {
   id: string;
   purchase_price: number;
   purchase_date: string;
-  selling_price: number | null;
-  sold_at: string | null;
-  status: string;
+  sale_price: number | null; // C'était selling_price
+  sale_date: string | null;  // C'était sold_at
+  is_sold: boolean | null;   // C'était status
 }
 
 interface Repair {
@@ -87,7 +88,7 @@ export function Analytics() {
       ]);
 
       if (phonesRes.data) {
-        console.log("Données téléphones brutes:", phonesRes.data); // Pour le débogage
+        console.log("Données reçues (Vérification):", phonesRes.data); 
         setPhones(phonesRes.data);
       }
       if (repairsRes.data) setRepairs(repairsRes.data);
@@ -100,20 +101,18 @@ export function Analytics() {
     }
   };
 
-  // --- FONCTIONS UTILITAIRES ROBUSTES ---
+  // --- FONCTIONS UTILITAIRES CORRIGÉES ---
 
-  // Vérifie si vendu (insensible à la casse, aux espaces, ou si date présente)
+  // Vérifie si vendu en utilisant 'is_sold' ou la présence d'une date de vente
   const isPhoneSold = (p: Phone) => {
-    const statusClean = p.status ? p.status.toLowerCase().trim() : '';
-    return statusClean === 'vendu' || !!p.sold_at;
+    return p.is_sold === true || !!p.sale_date;
   };
 
   // Récupère la date "effective" pour le graphique
   const getPhoneDate = (p: Phone) => {
     if (isPhoneSold(p)) {
-      // Si vendu mais pas de date sold_at, on utilise AUJOURD'HUI (pour qu'il apparaisse dans les stats récentes)
-      // Sinon on utiliserait la date d'achat et il disparaitrait des stats si acheté il y a longtemps
-      return p.sold_at ? new Date(p.sold_at) : new Date(); 
+      // Si vendu mais pas de date sale_date, on utilise AUJOURD'HUI
+      return p.sale_date ? new Date(p.sale_date) : new Date(); 
     }
     return new Date(p.purchase_date);
   };
@@ -122,7 +121,7 @@ export function Analytics() {
     const now = new Date();
     let startDate: Date;
 
-    // Réinitialiser l'heure pour éviter les décalages de quelques heures
+    // Réinitialiser l'heure
     now.setHours(23, 59, 59, 999);
 
     switch (timeRange) {
@@ -144,11 +143,10 @@ export function Analytics() {
         break;
       case 'all':
       default:
-        startDate = new Date(0); // 1970
+        startDate = new Date(0); 
         break;
     }
     
-    // Mettre startDate à 00:00:00
     startDate.setHours(0, 0, 0, 0);
 
     return {
@@ -165,15 +163,14 @@ export function Analytics() {
   const calculateStats = () => {
     const filtered = getFilteredDataByTimeRange();
 
-    // Téléphones achetés (tous ceux dont la date d'achat ou de vente tombe dans la période)
     const totalPurchased = filtered.phones.length;
     
-    // Filtrer uniquement les vendus
+    // Filtrer les vendus
     const soldPhones = filtered.phones.filter(isPhoneSold);
     const totalSold = soldPhones.length;
 
-    // VENTES (CA) - On sécurise avec Number()
-    const totalPhoneCA = soldPhones.reduce((sum, p) => sum + Number(p.selling_price || 0), 0);
+    // VENTES (CA) - Correction : on utilise sale_price
+    const totalPhoneCA = soldPhones.reduce((sum, p) => sum + Number(p.sale_price || 0), 0);
 
     const ca = totalPhoneCA;
 
@@ -189,7 +186,6 @@ export function Analytics() {
       totalRepairCost -
       totalMaterielCost;
 
-    // Valeur du stock pièces
     const totalStockValue = filtered.stockPieces.reduce(
       (sum, s) => sum + (Number(s.purchase_price) * Number(s.quantity)),
       0
@@ -223,12 +219,12 @@ export function Analytics() {
     // --- 1️⃣ CA & Ventes Téléphones
     filtered.phones.forEach((phone) => {
       if (isPhoneSold(phone)) {
-        // On utilise la date calculée (Aujourd'hui si pas de sold_at)
         const dateObj = getPhoneDate(phone);
         const date = dateObj.toISOString().split("T")[0];
         
         const entry = getOrCreateEntry(date);
-        const sellingPrice = Number(phone.selling_price || 0);
+        // Correction : sale_price au lieu de selling_price
+        const sellingPrice = Number(phone.sale_price || 0);
         const purchasePrice = Number(phone.purchase_price || 0);
 
         entry.ca += sellingPrice;
@@ -267,11 +263,11 @@ export function Analytics() {
 
     let repairRevenue = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
     
+    // Correction : sale_price
     let phoneMargin = filtered.phones
       .filter(isPhoneSold)
-      .reduce((sum, p) => sum + (Number(p.selling_price || 0) - Number(p.purchase_price || 0)), 0);
+      .reduce((sum, p) => sum + (Number(p.sale_price || 0) - Number(p.purchase_price || 0)), 0);
 
-    // Empêcher les valeurs négatives
     repairRevenue = Math.max(repairRevenue, 0);
     phoneMargin = Math.max(phoneMargin, 0);
 
