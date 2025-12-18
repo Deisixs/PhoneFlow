@@ -121,7 +121,7 @@ export function Analytics() {
     }
 
     return {
-      phones: phones.filter((p) => new Date(p.purchase_date) >= startDate),
+      phones: phones.filter((p) => new Date(p.sold_at ?? p.purchase_date) >= startDate),
       repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
       stockPieces: stockPieces.filter((s) => new Date(s.created_at) >= startDate),
       materielExpenses: materielExpenses.filter((m) => new Date(m.purchase_date) >= startDate),
