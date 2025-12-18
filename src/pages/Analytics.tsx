@@ -34,7 +34,8 @@ interface Phone {
   purchase_date: string;
   selling_price: number | null;
   sold_at: string | null;
-  status: string;
+  is_sold: boolean;
+
 }
 
 interface Repair {
@@ -62,6 +63,7 @@ export function Analytics() {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState<TimeRange>('30days');
   const [isLoading, setIsLoading] = useState(true);
+  const isSold = (p: Phone) => p.is_sold === true;
   const [showTimeRangeMenu, setShowTimeRangeMenu] = useState(false);
 
   const [phones, setPhones] = useState<Phone[]>([]);
@@ -126,7 +128,7 @@ export function Analytics() {
     return {
       // ✅ FIX: on compare bien à startDate
       // - si vendu: on filtre sur sold_at (sinon sur purchase_date)
-      phones: phones.filter((p) => new Date(p.sold_at ?? p.purchase_date) >= startDate),
+      phones: phones.filter( (p) => new Date(p.is_sold ? p.sale_date! : p.purchase_date) >= startDate ),
 
       // (je garde ton choix: repairs sur created_at ici)
       repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
@@ -146,7 +148,8 @@ export function Analytics() {
     // VENTES (CA téléphones seulement)
     const totalPhoneCA = filtered.phones
       .filter(isSold)
-      .reduce((sum, p) => sum + (p.selling_price || 0), 0);
+      .reduce((sum, p) => sum + (p.sale_price || 0), 0);
+
 
     // CA = uniquement ventes téléphones
     const ca = totalPhoneCA;
