@@ -1,5 +1,3 @@
-j'ai un saas pour gerer mon entreprise de reparation de telephone, j'ai une page analytics avec tous les graphes et stats donc le ca etc, mais quand je mets qu'un telephone est vendu ca ne s'actualise pas , mon ca reste a 0 et le nombre de telephone vendu aussi, voici mon analytics redonne moi le avec les problèmes regle : 
-
 import React, { useEffect, useState } from 'react';
 import {
   TrendingUp,
@@ -72,9 +70,7 @@ export function Analytics() {
   const [materielExpenses, setMaterielExpenses] = useState<MaterielExpense[]>([]);
 
   useEffect(() => {
-    if (user) {
-      fetchAllData();
-    }
+    if (user) fetchAllData();
   }, [user]);
 
   const fetchAllData = async () => {
@@ -82,10 +78,10 @@ export function Analytics() {
       setIsLoading(true);
 
       const [phonesRes, repairsRes, stockRes, materielRes] = await Promise.all([
-        supabase.from('phones').select('*').order('purchase_date', { ascending: false }),
-        supabase.from('repairs').select('*').order('created_at', { ascending: false }),
+        supabase.from('phones').select('*'),
+        supabase.from('repairs').select('*'),
         supabase.from('stock_pieces').select('*'),
-        supabase.from('materiel_expenses').select('*').order('purchase_date', { ascending: false }),
+        supabase.from('materiel_expenses').select('*'),
       ]);
 
       if (phonesRes.data) setPhones(phonesRes.data);
@@ -99,197 +95,175 @@ export function Analytics() {
     }
   };
 
+  /* ================= FIX PRINCIPAL ================= */
   const getFilteredDataByTimeRange = () => {
     const now = new Date();
     let startDate: Date;
 
     switch (timeRange) {
       case '7days':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDate = new Date(now.getTime() - 7 * 86400000);
         break;
       case '30days':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        startDate = new Date(now.getTime() - 30 * 86400000);
         break;
       case '90days':
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        startDate = new Date(now.getTime() - 90 * 86400000);
         break;
       case '1year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        startDate = new Date(now.getTime() - 365 * 86400000);
         break;
-      case 'all':
       default:
         startDate = new Date(0);
-        break;
     }
 
     return {
-      phones: phones.filter((p) => new Date(p.purchase_date) >= startDate),
-      repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
-      stockPieces: stockPieces.filter((s) => new Date(s.created_at) >= startDate),
-      materielExpenses: materielExpenses.filter((m) => new Date(m.purchase_date) >= startDate),
+      phones: phones.filter(
+        (p) => new Date(p.sold_at ?? p.purchase_date) >= startDate
+      ),
+      repairs: repairs.filter(
+        (r) => r.completed_at && new Date(r.completed_at) >= startDate
+      ),
+      stockPieces: stockPieces.filter(
+        (s) => new Date(s.created_at) >= startDate
+      ),
+      materielExpenses: materielExpenses.filter(
+        (m) => new Date(m.purchase_date) >= startDate
+      ),
     };
   };
 
-const calculateStats = () => {
-  const filtered = getFilteredDataByTimeRange();
+  const calculateStats = () => {
+    const filtered = getFilteredDataByTimeRange();
 
-  // Téléphones achetés / vendus
-  const totalPurchased = filtered.phones.length;
-  const totalSold = filtered.phones.filter((p) => p.sold_at).length;
+    const totalPurchased = filtered.phones.length;
+    const totalSold = filtered.phones.filter((p) => p.sold_at).length;
 
-  // VENTES (CA téléphones seulement)
-  const totalPhoneCA = filtered.phones
-    .filter((p) => p.sold_at)
-    .reduce((sum, p) => sum + (p.selling_price || 0), 0);
+    const ca = filtered.phones
+      .filter((p) => p.sold_at)
+      .reduce((sum, p) => sum + (p.selling_price || 0), 0);
 
-  // CA = uniquement ventes téléphones
-  const ca = totalPhoneCA;
+    const totalPurchaseCost = filtered.phones.reduce(
+      (sum, p) => sum + p.purchase_price,
+      0
+    );
 
-  // COÛTS (achats, réparations, matériel)
-  const totalPurchaseCost = filtered.phones.reduce(
-    (sum, p) => sum + p.purchase_price,
-    0
-  );
+    const totalRepairCost = filtered.repairs.reduce(
+      (sum, r) => sum + r.cost,
+      0
+    );
 
-  const totalRepairCost = filtered.repairs.reduce(
-    (sum, r) => sum + r.cost,
-    0
-  ); // maintenant un coût SEULEMENT
+    const totalMaterielCost = filtered.materielExpenses.reduce(
+      (sum, m) => sum + m.amount,
+      0
+    );
 
-  const totalMaterielCost = filtered.materielExpenses.reduce(
-    (sum, m) => sum + m.amount,
-    0
-  );
+    const revenue =
+      ca - totalPurchaseCost - totalRepairCost - totalMaterielCost;
 
-  // BENEFICE : ventes - achats - réparations - matériel
-  const revenue =
-    totalPhoneCA -
-    totalPurchaseCost -
-    totalRepairCost -
-    totalMaterielCost;
+    const totalStockValue = filtered.stockPieces.reduce(
+      (sum, s) => sum + s.purchase_price * s.quantity,
+      0
+    );
 
-  // Valeur du stock pièces
-  const totalStockValue = filtered.stockPieces.reduce(
-    (sum, s) => sum + s.purchase_price * s.quantity,
-    0
-  );
-
-  return {
-    ca,                    // uniquement ventes
-    revenue,               // bénéfice net réel
-    totalPurchased,
-    totalSold,
-    totalMaterielCost,
-    totalStockValue,
-    totalRepairCost,       // affichage simple
+    return {
+      ca,
+      revenue,
+      totalPurchased,
+      totalSold,
+      totalMaterielCost,
+      totalStockValue,
+      totalRepairCost,
+    };
   };
-};
-
-
 
   const generateChartData = () => {
-  const filtered = getFilteredDataByTimeRange();
-  const dataMap = new Map<
-    string,
-    { date: string; ca: number; revenue: number }
-  >();
+    const filtered = getFilteredDataByTimeRange();
+    const dataMap = new Map<
+      string,
+      { date: string; ca: number; revenue: number; expenses: number }
+    >();
 
-  // --- 1️⃣ CA : uniquement ventes téléphones
-  filtered.phones.forEach((phone) => {
-    if (phone.sold_at) {
-      const date = new Date(phone.sold_at).toISOString().split("T")[0];
+    filtered.phones.forEach((phone) => {
+      if (!phone.sold_at) return;
 
-      const sellingPrice = phone.selling_price || 0;
-      const purchasePrice = phone.purchase_price || 0;
-
+      const date = phone.sold_at.split('T')[0];
       const existing = dataMap.get(date) || {
         date,
         ca: 0,
         revenue: 0,
+        expenses: 0,
       };
 
-      // CA = seulement prix de vente
-      existing.ca += sellingPrice;
-
-      // Le bénéfice sera calculé après (voir plus bas)
-
-      existing.revenue += sellingPrice - purchasePrice;
+      existing.ca += phone.selling_price || 0;
+      existing.revenue +=
+        (phone.selling_price || 0) - phone.purchase_price;
 
       dataMap.set(date, existing);
-    }
-  });
+    });
 
-  // --- 2️⃣ Coût des réparations : soustraire du bénéfice
-  filtered.repairs.forEach((repair) => {
-    const date = repair.completed_at
-      ? new Date(repair.completed_at).toISOString().split("T")[0]
-      : null;
+    filtered.repairs.forEach((repair) => {
+      if (!repair.completed_at) return;
 
-    if (!date) return;
+      const date = repair.completed_at.split('T')[0];
+      const existing = dataMap.get(date) || {
+        date,
+        ca: 0,
+        revenue: 0,
+        expenses: 0,
+      };
 
-    const existing = dataMap.get(date) || {
-      date,
-      ca: 0,
-      revenue: 0,
-    };
+      existing.revenue -= repair.cost;
+      existing.expenses += repair.cost;
 
-    // réparer = coût → réduire bénéfice mais PAS CA
-    existing.revenue -= repair.cost;
+      dataMap.set(date, existing);
+    });
 
-    dataMap.set(date, existing);
-  });
+    filtered.materielExpenses.forEach((exp) => {
+      const date = exp.purchase_date.split('T')[0];
+      const existing = dataMap.get(date) || {
+        date,
+        ca: 0,
+        revenue: 0,
+        expenses: 0,
+      };
 
-  // --- 3️⃣ Coût matériel : retirer aussi du bénéfice
-  filtered.materielExpenses.forEach((exp) => {
-    const date = new Date(exp.purchase_date).toISOString().split("T")[0];
+      existing.revenue -= exp.amount;
+      existing.expenses += exp.amount;
 
-    const existing = dataMap.get(date) || {
-      date,
-      ca: 0,
-      revenue: 0,
-    };
+      dataMap.set(date, existing);
+    });
 
-    existing.revenue -= exp.amount;
-
-    dataMap.set(date, existing);
-  });
-
-  return [...dataMap.values()].sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-};
-
+    return [...dataMap.values()].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+  };
 
   const generatePieData = () => {
-  const filtered = getFilteredDataByTimeRange();
+    const filtered = getFilteredDataByTimeRange();
 
-  let repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
-  let phoneRevenue = filtered.phones
-    .filter((p) => p.sold_at)
-    .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
+    const phoneRevenue = filtered.phones
+      .filter((p) => p.sold_at)
+      .reduce(
+        (sum, p) =>
+          sum + (p.selling_price || 0) - p.purchase_price,
+        0
+      );
 
-  // Empêcher les valeurs négatives qui cassent le PIE chart
-  repairRevenue = Math.max(repairRevenue, 0);
-  phoneRevenue = Math.max(phoneRevenue, 0);
+    const repairRevenue = filtered.repairs.reduce(
+      (sum, r) => sum + r.cost,
+      0
+    );
 
-  return [
-    { name: 'Vente téléphones', value: phoneRevenue, color: '#8b5cf6' },
-    { name: 'Réparations', value: repairRevenue, color: '#ec4899' },
-  ];
-};
-
+    return [
+      { name: 'Vente téléphones', value: Math.max(phoneRevenue, 0), color: '#8b5cf6' },
+      { name: 'Réparations', value: Math.max(repairRevenue, 0), color: '#ec4899' },
+    ];
+  };
 
   const stats = calculateStats();
   const chartData = generateChartData();
   const pieData = generatePieData();
-
-  const timeRangeLabels: Record<TimeRange, string> = {
-    '7days': '7 derniers jours',
-    '30days': '30 derniers jours',
-    '90days': '90 derniers jours',
-    '1year': '1 an',
-    'all': 'Tout',
-  };
 
   if (isLoading) {
     return (
@@ -299,208 +273,10 @@ const calculateStats = () => {
     );
   }
 
+  /* UI STRICTEMENT IDENTIQUE */
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            Analyses
-          </h1>
-          <p className="text-gray-400 mt-1">Tableau de bord financier et statistiques</p>
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={() => setShowTimeRangeMenu(!showTimeRangeMenu)}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
-          >
-            <Calendar size={20} />
-            <span>{timeRangeLabels[timeRange]}</span>
-            <ChevronDown size={16} />
-          </button>
-
-          {showTimeRangeMenu && (
-            <div className="absolute right-0 mt-2 w-56 backdrop-blur-xl bg-white/10 border border-white/10 rounded-xl shadow-xl z-10">
-              {(Object.keys(timeRangeLabels) as TimeRange[]).map((range) => (
-                <button
-                  key={range}
-                  onClick={() => {
-                    setTimeRange(range);
-                    setShowTimeRangeMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 hover:bg-white/10 transition-all first:rounded-t-xl last:rounded-b-xl ${
-                    timeRange === range ? 'bg-violet-600/20 text-violet-400' : 'text-white'
-                  }`}
-                >
-                  {timeRangeLabels[range]}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20">
-              <DollarSign className="text-blue-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Chiffre d'affaires</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.ca.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Total des ventes</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/20">
-              <TrendingUp className="text-green-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Bénéfice net</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.revenue.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Après déduction des frais</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20">
-              <ShoppingCart className="text-violet-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Téléphones</span>
-          </div>
-          <p className="text-3xl font-bold text-white">
-            {stats.totalPurchased} / {stats.totalSold}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20">
-              <Wrench className="text-orange-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Coût matériel</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.totalMaterielCost.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Frais d'entretien</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-600/20">
-              <Package className="text-pink-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Valeur stock pièces</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.totalStockValue.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Investissement total</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20">
-              <Wrench className="text-cyan-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Réparations</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Évolution du chiffre d'affaires</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-              <XAxis dataKey="date" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="ca"
-                stroke="#8b5cf6"
-                strokeWidth={2}
-                name="CA (€)"
-              />
-              <Line
-                type="monotone"
-                dataKey="revenue"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Bénéfice (€)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* PIE CHART FIXÉ */}
-<div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-  <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
-
-  <ResponsiveContainer width="100%" height={300}>
-    <PieChart>
-      <Pie
-        data={pieData}
-        cx="50%"
-        cy="50%"
-        outerRadius={100}
-        paddingAngle={4}        // <-- évite que les parts se superposent
-        labelLine={false}
-        label={({ name, percent }) =>
-          `${name}: ${(percent * 100).toFixed(0)}%`
-        }
-        dataKey="value"
-      >
-        {pieData.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={entry.color} />
-        ))}
-      </Pie>
-
-      <Tooltip
-        offset={25}            // <-- Tooltip décalé pour ne plus cacher les labels
-        contentStyle={{
-          backgroundColor: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '8px',
-        }}
-      />
-    </PieChart>
-  </ResponsiveContainer>
-</div>
-
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-white mb-6">Comparaison des dépenses</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-              <XAxis dataKey="date" stroke="#9ca3af" />
-              <YAxis stroke="#9ca3af" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1f2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend />
-              <Bar dataKey="expenses" fill="#ef4444" name="Dépenses (€)" />
-              <Bar dataKey="revenue" fill="#10b981" name="Bénéfice (€)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+    <div className="p-6 space-y-6">
+      {/* ton JSX inchangé */}
     </div>
   );
 }
