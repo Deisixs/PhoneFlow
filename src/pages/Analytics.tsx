@@ -279,7 +279,6 @@ const calculateStats = () => {
 
   const stats = calculateStats();
   const chartData = generateChartData();
-    expenses: 0,
   const pieData = generatePieData();
 
   const timeRangeLabels: Record<TimeRange, string> = {
