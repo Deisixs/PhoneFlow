@@ -97,6 +97,9 @@ export function Analytics() {
     }
   };
 
+  // ✅ Une seule définition "vendu", utilisée partout
+  const isSold = (p: Phone) => p.status?.toLowerCase() === 'vendu' || !!p.sold_at;
+
   const getFilteredDataByTimeRange = () => {
     const now = new Date();
     let startDate: Date;
@@ -121,162 +124,164 @@ export function Analytics() {
     }
 
     return {
-      phones: phones.filter((p) => new Date(p.sold_at ?? p.purchase_date)),
+      // ✅ FIX: on compare bien à startDate
+      // - si vendu: on filtre sur sold_at (sinon sur purchase_date)
+      phones: phones.filter((p) => new Date(p.sold_at ?? p.purchase_date) >= startDate),
+
+      // (je garde ton choix: repairs sur created_at ici)
       repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
+
       stockPieces: stockPieces.filter((s) => new Date(s.created_at) >= startDate),
       materielExpenses: materielExpenses.filter((m) => new Date(m.purchase_date) >= startDate),
     };
   };
 
-const calculateStats = () => {
-  const filtered = getFilteredDataByTimeRange();
+  const calculateStats = () => {
+    const filtered = getFilteredDataByTimeRange();
 
-  // Téléphones achetés / vendus
-  const totalPurchased = filtered.phones.length;
-  const isSold = (p: Phone) => p.status?.toLowerCase() === 'vendu' || !!p.sold_at;
-  const totalSold = filtered.phones.filter(isSold).length;
+    // Téléphones achetés / vendus
+    const totalPurchased = filtered.phones.length;
+    const totalSold = filtered.phones.filter(isSold).length;
 
-  // VENTES (CA téléphones seulement)
-  const totalPhoneCA = filtered.phones
-    .filter(isSold)
-    .reduce((sum, p) => sum + (p.selling_price || 0), 0);
+    // VENTES (CA téléphones seulement)
+    const totalPhoneCA = filtered.phones
+      .filter(isSold)
+      .reduce((sum, p) => sum + (p.selling_price || 0), 0);
 
-  // CA = uniquement ventes téléphones
-  const ca = totalPhoneCA;
+    // CA = uniquement ventes téléphones
+    const ca = totalPhoneCA;
 
-  // COÛTS (achats, réparations, matériel)
-  const totalPurchaseCost = filtered.phones.reduce(
-    (sum, p) => sum + p.purchase_price,
-    0
-  );
+    // COÛTS (achats, réparations, matériel)
+    const totalPurchaseCost = filtered.phones.reduce(
+      (sum, p) => sum + p.purchase_price,
+      0
+    );
 
-  const totalRepairCost = filtered.repairs.reduce(
-    (sum, r) => sum + r.cost,
-    0
-  ); // maintenant un coût SEULEMENT
+    const totalRepairCost = filtered.repairs.reduce(
+      (sum, r) => sum + r.cost,
+      0
+    ); // maintenant un coût SEULEMENT
 
-  const totalMaterielCost = filtered.materielExpenses.reduce(
-    (sum, m) => sum + m.amount,
-    0
-  );
+    const totalMaterielCost = filtered.materielExpenses.reduce(
+      (sum, m) => sum + m.amount,
+      0
+    );
 
-  // BENEFICE : ventes - achats - réparations - matériel
-  const revenue =
-    totalPhoneCA -
-    totalPurchaseCost -
-    totalRepairCost -
-    totalMaterielCost;
+    // BENEFICE : ventes - achats - réparations - matériel
+    const revenue =
+      totalPhoneCA -
+      totalPurchaseCost -
+      totalRepairCost -
+      totalMaterielCost;
 
-  // Valeur du stock pièces
-  const totalStockValue = filtered.stockPieces.reduce(
-    (sum, s) => sum + s.purchase_price * s.quantity,
-    0
-  );
+    // Valeur du stock pièces
+    const totalStockValue = filtered.stockPieces.reduce(
+      (sum, s) => sum + s.purchase_price * s.quantity,
+      0
+    );
 
-  return {
-    ca,                    // uniquement ventes
-    revenue,               // bénéfice net réel
-    totalPurchased,
-    totalSold,
-    totalMaterielCost,
-    totalStockValue,
-    totalRepairCost,       // affichage simple
+    return {
+      ca,                    // uniquement ventes
+      revenue,               // bénéfice net réel
+      totalPurchased,
+      totalSold,
+      totalMaterielCost,
+      totalStockValue,
+      totalRepairCost,       // affichage simple
+    };
   };
-};
-
-
 
   const generateChartData = () => {
-  const filtered = getFilteredDataByTimeRange();
-  const dataMap = new Map<
-    string,
-    { date: string; ca: number; revenue: number }
-  >();
+    const filtered = getFilteredDataByTimeRange();
+    const dataMap = new Map<
+      string,
+      { date: string; ca: number; revenue: number; expenses: number }
+    >();
 
-  // --- 1️⃣ CA : uniquement ventes téléphones
-  filtered.phones.forEach((phone) => {
-    if (phone.sold_at) {
-      const date = new Date(phone.sold_at).toISOString().split("T")[0];
+    // --- 1️⃣ CA : uniquement ventes téléphones
+    filtered.phones.forEach((phone) => {
+      if (!isSold(phone)) return;
+
+      // ✅ si sold_at absent mais status=vendu, on prend une date fallback
+      const dateKey = new Date(phone.sold_at ?? phone.purchase_date).toISOString().split("T")[0];
 
       const sellingPrice = phone.selling_price || 0;
       const purchasePrice = phone.purchase_price || 0;
+
+      const existing = dataMap.get(dateKey) || {
+        date: dateKey,
+        ca: 0,
+        revenue: 0,
+        expenses: 0,
+      };
+
+      existing.ca += sellingPrice;
+      existing.revenue += sellingPrice - purchasePrice;
+
+      dataMap.set(dateKey, existing);
+    });
+
+    // --- 2️⃣ Coût des réparations : soustraire du bénéfice
+    filtered.repairs.forEach((repair) => {
+      const date = repair.completed_at
+        ? new Date(repair.completed_at).toISOString().split("T")[0]
+        : null;
+
+      if (!date) return;
 
       const existing = dataMap.get(date) || {
         date,
         ca: 0,
         revenue: 0,
+        expenses: 0,
       };
 
-      // CA = seulement prix de vente
-      existing.ca += sellingPrice;
-
-      // Le bénéfice sera calculé après (voir plus bas)
-
-      existing.revenue += sellingPrice - purchasePrice;
+      existing.revenue -= repair.cost;
+      existing.expenses += repair.cost; // ✅ nécessaire pour BarChart
 
       dataMap.set(date, existing);
-    }
-  });
+    });
 
-  // --- 2️⃣ Coût des réparations : soustraire du bénéfice
-  filtered.repairs.forEach((repair) => {
-    const date = repair.completed_at
-      ? new Date(repair.completed_at).toISOString().split("T")[0]
-      : null;
+    // --- 3️⃣ Coût matériel : retirer aussi du bénéfice
+    filtered.materielExpenses.forEach((exp) => {
+      const date = new Date(exp.purchase_date).toISOString().split("T")[0];
 
-    if (!date) return;
+      const existing = dataMap.get(date) || {
+        date,
+        ca: 0,
+        revenue: 0,
+        expenses: 0,
+      };
 
-    const existing = dataMap.get(date) || {
-      date,
-      ca: 0,
-      revenue: 0,
-    };
+      existing.revenue -= exp.amount;
+      existing.expenses += exp.amount; // ✅ nécessaire pour BarChart
 
-    // réparer = coût → réduire bénéfice mais PAS CA
-    existing.revenue -= repair.cost;
+      dataMap.set(date, existing);
+    });
 
-    dataMap.set(date, existing);
-  });
-
-  // --- 3️⃣ Coût matériel : retirer aussi du bénéfice
-  filtered.materielExpenses.forEach((exp) => {
-    const date = new Date(exp.purchase_date).toISOString().split("T")[0];
-
-    const existing = dataMap.get(date) || {
-      date,
-      ca: 0,
-      revenue: 0,
-    };
-
-    existing.revenue -= exp.amount;
-
-    dataMap.set(date, existing);
-  });
-
-  return [...dataMap.values()].sort((a, b) =>
-    a.date.localeCompare(b.date)
-  );
-};
-
+    return [...dataMap.values()].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+  };
 
   const generatePieData = () => {
-  const filtered = getFilteredDataByTimeRange();
+    const filtered = getFilteredDataByTimeRange();
 
-  let repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
-  let phoneRevenue = filtered.phones
-    .filter((p) => p.sold_at)
-    .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
+    // ✅ cohérent avec isSold (sinon pie restait à 0 si sold_at null)
+    let repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
+    let phoneRevenue = filtered.phones
+      .filter(isSold)
+      .reduce((sum, p) => sum + (p.selling_price || 0) - p.purchase_price, 0);
 
-  // Empêcher les valeurs négatives qui cassent le PIE chart
-  repairRevenue = Math.max(repairRevenue, 0);
-  phoneRevenue = Math.max(phoneRevenue, 0);
+    // Empêcher les valeurs négatives qui cassent le PIE chart
+    repairRevenue = Math.max(repairRevenue, 0);
+    phoneRevenue = Math.max(phoneRevenue, 0);
 
-  return [
-    { name: 'Vente téléphones', value: phoneRevenue, color: '#8b5cf6' },
-    { name: 'Réparations', value: repairRevenue, color: '#ec4899' },
-  ];
-};
-
+    return [
+      { name: 'Vente téléphones', value: phoneRevenue, color: '#8b5cf6' },
+      { name: 'Réparations', value: repairRevenue, color: '#ec4899' },
+    ];
+  };
 
   const stats = calculateStats();
   const chartData = generateChartData();
@@ -444,40 +449,39 @@ const calculateStats = () => {
         </div>
 
         {/* PIE CHART FIXÉ */}
-<div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
-  <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
 
-  <ResponsiveContainer width="100%" height={300}>
-    <PieChart>
-      <Pie
-        data={pieData}
-        cx="50%"
-        cy="50%"
-        outerRadius={100}
-        paddingAngle={4}        // <-- évite que les parts se superposent
-        labelLine={false}
-        label={({ name, percent }) =>
-          `${name}: ${(percent * 100).toFixed(0)}%`
-        }
-        dataKey="value"
-      >
-        {pieData.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={entry.color} />
-        ))}
-      </Pie>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                paddingAngle={4}        // <-- évite que les parts se superposent
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name}: ${(percent * 100).toFixed(0)}%`
+                }
+                dataKey="value"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
 
-      <Tooltip
-        offset={25}            // <-- Tooltip décalé pour ne plus cacher les labels
-        contentStyle={{
-          backgroundColor: '#1f2937',
-          border: '1px solid #374151',
-          borderRadius: '8px',
-        }}
-      />
-    </PieChart>
-  </ResponsiveContainer>
-</div>
-
+              <Tooltip
+                offset={25}            // <-- Tooltip décalé pour ne plus cacher les labels
+                contentStyle={{
+                  backgroundColor: '#1f2937',
+                  border: '1px solid #374151',
+                  borderRadius: '8px',
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-white mb-6">Comparaison des dépenses</h3>
