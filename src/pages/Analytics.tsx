@@ -1,3 +1,5 @@
+j'ai un saas pour gerer mon entreprise de reparation de telephone, j'ai une page analytics avec tous les graphes et stats donc le ca etc, mais quand je mets qu'un telephone est vendu ca ne s'actualise pas , mon ca reste a 0 et le nombre de telephone vendu aussi, voici mon analytics redonne moi le avec les problèmes regle : 
+
 import React, { useEffect, useState } from 'react';
 import {
   TrendingUp,
@@ -121,7 +123,7 @@ export function Analytics() {
     }
 
     return {
-      phones: phones.filter((p) => new Date(p.sold_at ?? p.purchase_date) >= startDate),
+      phones: phones.filter((p) => new Date(p.purchase_date) >= startDate),
       repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
       stockPieces: stockPieces.filter((s) => new Date(s.created_at) >= startDate),
       materielExpenses: materielExpenses.filter((m) => new Date(m.purchase_date) >= startDate),
