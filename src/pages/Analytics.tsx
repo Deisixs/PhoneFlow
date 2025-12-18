@@ -133,11 +133,12 @@ const calculateStats = () => {
 
   // Téléphones achetés / vendus
   const totalPurchased = filtered.phones.length;
-  const totalSold = filtered.phones.filter((p) => p.sold_at).length;
+  const isSold = (p: Phone) => p.status?.toLowerCase() === 'vendu' || !!p.sold_at;
+  const totalSold = filtered.phones.filter(isSold).length;
 
   // VENTES (CA téléphones seulement)
   const totalPhoneCA = filtered.phones
-    .filter((p) => p.sold_at)
+    .filter(isSold)
     .reduce((sum, p) => sum + (p.selling_price || 0), 0);
 
   // CA = uniquement ventes téléphones
