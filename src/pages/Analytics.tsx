@@ -86,7 +86,10 @@ export function Analytics() {
         supabase.from('materiel_expenses').select('*').order('purchase_date', { ascending: false }),
       ]);
 
-      if (phonesRes.data) setPhones(phonesRes.data);
+      if (phonesRes.data) {
+        console.log("Données téléphones brutes:", phonesRes.data); // Pour le débogage
+        setPhones(phonesRes.data);
+      }
       if (repairsRes.data) setRepairs(repairsRes.data);
       if (stockRes.data) setStockPieces(stockRes.data);
       if (materielRes.data) setMaterielExpenses(materielRes.data);
@@ -97,42 +100,60 @@ export function Analytics() {
     }
   };
 
-  // CORRECTION : Utilitaire pour vérifier si un téléphone est vendu de manière robuste
+  // --- FONCTIONS UTILITAIRES ROBUSTES ---
+
+  // Vérifie si vendu (insensible à la casse, aux espaces, ou si date présente)
   const isPhoneSold = (p: Phone) => {
-    return (
-      (p.status && p.status.toLowerCase().trim() === 'vendu') || 
-      !!p.sold_at
-    );
+    const statusClean = p.status ? p.status.toLowerCase().trim() : '';
+    return statusClean === 'vendu' || !!p.sold_at;
+  };
+
+  // Récupère la date "effective" pour le graphique
+  const getPhoneDate = (p: Phone) => {
+    if (isPhoneSold(p)) {
+      // Si vendu mais pas de date sold_at, on utilise AUJOURD'HUI (pour qu'il apparaisse dans les stats récentes)
+      // Sinon on utiliserait la date d'achat et il disparaitrait des stats si acheté il y a longtemps
+      return p.sold_at ? new Date(p.sold_at) : new Date(); 
+    }
+    return new Date(p.purchase_date);
   };
 
   const getFilteredDataByTimeRange = () => {
     const now = new Date();
     let startDate: Date;
 
+    // Réinitialiser l'heure pour éviter les décalages de quelques heures
+    now.setHours(23, 59, 59, 999);
+
     switch (timeRange) {
       case '7days':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 7);
         break;
       case '30days':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 30);
         break;
       case '90days':
-        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 90);
         break;
       case '1year':
-        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        startDate = new Date();
+        startDate.setFullYear(now.getFullYear() - 1);
         break;
       case 'all':
       default:
         startDate = new Date(0); // 1970
         break;
     }
+    
+    // Mettre startDate à 00:00:00
+    startDate.setHours(0, 0, 0, 0);
 
     return {
-      // CORRECTION : Ajout de la comparaison ">= startDate" qui manquait
       phones: phones.filter((p) => {
-        // Si vendu, on regarde la date de vente, sinon la date d'achat
-        const dateToCheck = p.sold_at ? new Date(p.sold_at) : new Date(p.purchase_date);
+        const dateToCheck = getPhoneDate(p);
         return dateToCheck >= startDate;
       }),
       repairs: repairs.filter((r) => new Date(r.created_at) >= startDate),
@@ -144,22 +165,22 @@ export function Analytics() {
   const calculateStats = () => {
     const filtered = getFilteredDataByTimeRange();
 
-    // Téléphones achetés (tous ceux dans la période)
+    // Téléphones achetés (tous ceux dont la date d'achat ou de vente tombe dans la période)
     const totalPurchased = filtered.phones.length;
     
-    // Téléphones vendus (parmi ceux filtrés)
+    // Filtrer uniquement les vendus
     const soldPhones = filtered.phones.filter(isPhoneSold);
     const totalSold = soldPhones.length;
 
-    // VENTES (CA téléphones seulement)
-    const totalPhoneCA = soldPhones.reduce((sum, p) => sum + (p.selling_price || 0), 0);
+    // VENTES (CA) - On sécurise avec Number()
+    const totalPhoneCA = soldPhones.reduce((sum, p) => sum + Number(p.selling_price || 0), 0);
 
     const ca = totalPhoneCA;
 
     // COÛTS
-    const totalPurchaseCost = filtered.phones.reduce((sum, p) => sum + p.purchase_price, 0);
-    const totalRepairCost = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
-    const totalMaterielCost = filtered.materielExpenses.reduce((sum, m) => sum + m.amount, 0);
+    const totalPurchaseCost = filtered.phones.reduce((sum, p) => sum + Number(p.purchase_price || 0), 0);
+    const totalRepairCost = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
+    const totalMaterielCost = filtered.materielExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
 
     // BENEFICE
     const revenue =
@@ -170,7 +191,7 @@ export function Analytics() {
 
     // Valeur du stock pièces
     const totalStockValue = filtered.stockPieces.reduce(
-      (sum, s) => sum + s.purchase_price * s.quantity,
+      (sum, s) => sum + (Number(s.purchase_price) * Number(s.quantity)),
       0
     );
 
@@ -192,7 +213,6 @@ export function Analytics() {
       { date: string; ca: number; revenue: number; expenses: number }
     >();
 
-    // Helper pour initialiser ou récupérer une entrée
     const getOrCreateEntry = (dateStr: string) => {
         if (!dataMap.has(dateStr)) {
             dataMap.set(dateStr, { date: dateStr, ca: 0, revenue: 0, expenses: 0 });
@@ -202,23 +222,17 @@ export function Analytics() {
 
     // --- 1️⃣ CA & Ventes Téléphones
     filtered.phones.forEach((phone) => {
-      // CORRECTION : On traite le téléphone s'il est vendu, même si sold_at est null (on fallback sur purchase_date)
       if (isPhoneSold(phone)) {
-        // Si pas de date de vente, on prend la date d'achat pour l'afficher quelque part
-        const dateRef = phone.sold_at || phone.purchase_date; 
-        const date = new Date(dateRef).toISOString().split("T")[0];
+        // On utilise la date calculée (Aujourd'hui si pas de sold_at)
+        const dateObj = getPhoneDate(phone);
+        const date = dateObj.toISOString().split("T")[0];
         
         const entry = getOrCreateEntry(date);
-        const sellingPrice = phone.selling_price || 0;
-        const purchasePrice = phone.purchase_price || 0;
+        const sellingPrice = Number(phone.selling_price || 0);
+        const purchasePrice = Number(phone.purchase_price || 0);
 
         entry.ca += sellingPrice;
-        // Le bénéfice ici inclut la marge sur le téléphone
         entry.revenue += (sellingPrice - purchasePrice);
-      } else {
-         // Si acheté mais pas vendu, c'est une dépense (stock négatif sur le cashflow immédiat)
-         // Note: Selon ta logique comptable, l'achat de stock peut être vu comme une dépense. 
-         // Ici je le laisse neutre sur le "Revenue" global chart sauf si tu veux voir les sorties d'argent.
       }
     });
 
@@ -228,8 +242,9 @@ export function Analytics() {
       const date = new Date(dateRef).toISOString().split("T")[0];
       const entry = getOrCreateEntry(date);
 
-      entry.revenue -= repair.cost; // Réduit le bénéfice
-      entry.expenses += repair.cost; // Tracking des dépenses pour le BarChart
+      const cost = Number(repair.cost || 0);
+      entry.revenue -= cost;
+      entry.expenses += cost;
     });
 
     // --- 3️⃣ Coût matériel
@@ -237,8 +252,9 @@ export function Analytics() {
       const date = new Date(exp.purchase_date).toISOString().split("T")[0];
       const entry = getOrCreateEntry(date);
 
-      entry.revenue -= exp.amount;
-      entry.expenses += exp.amount;
+      const amount = Number(exp.amount || 0);
+      entry.revenue -= amount;
+      entry.expenses += amount;
     });
 
     return [...dataMap.values()].sort((a, b) =>
@@ -249,12 +265,13 @@ export function Analytics() {
   const generatePieData = () => {
     const filtered = getFilteredDataByTimeRange();
 
-    let repairRevenue = filtered.repairs.reduce((sum, r) => sum + r.cost, 0);
-    // On calcule la marge brute sur les téléphones vendus
+    let repairRevenue = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
+    
     let phoneMargin = filtered.phones
       .filter(isPhoneSold)
-      .reduce((sum, p) => sum + ((p.selling_price || 0) - p.purchase_price), 0);
+      .reduce((sum, p) => sum + (Number(p.selling_price || 0) - Number(p.purchase_price || 0)), 0);
 
+    // Empêcher les valeurs négatives
     repairRevenue = Math.max(repairRevenue, 0);
     phoneMargin = Math.max(phoneMargin, 0);
 
@@ -363,7 +380,6 @@ export function Analytics() {
           <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
         </div>
 
-        {/* Autres cartes statistiques inchangées */}
          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20">
