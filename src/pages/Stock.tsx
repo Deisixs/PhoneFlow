@@ -13,6 +13,7 @@ interface StockPiece {
   supplier: string;
   supplier_link: string;
   quantity: number;
+  phone_model: string; // ⬅️ AJOUTÉ
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export default function Stock() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPiece, setSelectedPiece] = useState<StockPiece | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSeries, setSelectedSeries] = useState<string>('all'); // ⬅️ AJOUTÉ
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -33,17 +35,52 @@ export default function Stock() {
     }
   }, [user]);
 
+  // ⬅️ MODIFIÉ pour inclure le filtre par série
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = pieces.filter(piece =>
-        piece.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        piece.supplier.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredPieces(filtered);
-    } else {
-      setFilteredPieces(pieces);
+    let filtered = pieces;
+    
+    // Filtre par série
+    if (selectedSeries !== 'all') {
+      filtered = filtered.filter(piece => {
+        if (selectedSeries === 'Autre') {
+          return piece.phone_model === 'Autre';
+        }
+        return piece.phone_model.includes(`iPhone ${selectedSeries}`);
+      });
     }
-  }, [searchTerm, pieces]);
+    
+    // Filtre par recherche
+    if (searchTerm) {
+      filtered = filtered.filter(piece =>
+        piece.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        piece.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        piece.phone_model.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    setFilteredPieces(filtered);
+  }, [searchTerm, pieces, selectedSeries]);
+
+  // ⬅️ NOUVELLE FONCTION
+  const getSeries = () => {
+    const seriesSet = new Set<string>();
+    pieces.forEach(piece => {
+      const model = piece.phone_model;
+      if (model === 'Autre') {
+        seriesSet.add('Autre');
+      } else {
+        const match = model.match(/iPhone (\d+)/);
+        if (match) {
+          seriesSet.add(match[1]);
+        }
+      }
+    });
+    return Array.from(seriesSet).sort((a, b) => {
+      if (a === 'Autre') return 1;
+      if (b === 'Autre') return -1;
+      return parseInt(b) - parseInt(a);
+    });
+  };
 
   const fetchPieces = async () => {
     try {
@@ -177,13 +214,42 @@ export default function Stock() {
         </div>
       </div>
 
+      {/* ⬅️ NOUVEAU : Onglets des séries */}
+      {getSeries().length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedSeries('all')}
+            className={`px-6 py-3 rounded-xl font-semibold whitespace-nowrap transition-all ${
+              selectedSeries === 'all'
+                ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            }`}
+          >
+            📱 Tous
+          </button>
+          {getSeries().map(s => (
+            <button
+              key={s}
+              onClick={() => setSelectedSeries(s)}
+              className={`px-6 py-3 rounded-xl font-semibold whitespace-nowrap transition-all ${
+                selectedSeries === s
+                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              {s === 'Autre' ? '🔧 Autre' : `📱 Série ${s}`}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         <div className="p-6 border-b border-white/10">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="Rechercher par nom ou fournisseur..."
+              placeholder="Rechercher par nom, modèle ou fournisseur..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all"
@@ -197,6 +263,10 @@ export default function Stock() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Pièce
+                </th>
+                {/* ⬅️ NOUVELLE COLONNE */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Modèle
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Fournisseur
@@ -218,10 +288,17 @@ export default function Stock() {
             <tbody className="divide-y divide-white/10">
               {filteredPieces.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <Package size={48} className="mx-auto mb-4 text-gray-600" />
-                    <p className="text-lg font-medium text-white">Aucune pièce en stock</p>
-                    <p className="text-sm text-gray-400">Ajoutez votre première pièce pour commencer</p>
+                    <p className="text-lg font-medium text-white">
+                      {pieces.length === 0 ? 'Aucune pièce en stock' : 'Aucune pièce trouvée'}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {pieces.length === 0 
+                        ? 'Ajoutez votre première pièce pour commencer'
+                        : 'Essayez de modifier votre recherche ou filtre'
+                      }
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -235,11 +312,17 @@ export default function Stock() {
                         )}
                       </div>
                     </td>
+                    {/* ⬅️ NOUVELLE CELLULE */}
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                        {piece.phone_model}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className="text-white">{piece.supplier || '-'}</span>
                         {piece.supplier_link && (
-                          <a
+                          
                             href={piece.supplier_link}
                             target="_blank"
                             rel="noopener noreferrer"
