@@ -51,7 +51,6 @@ export const Repairs: React.FC = () => {
           phone:phones(model, imei)
         `)
         .eq('user_id', userId!)
-        .eq('archived', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -63,15 +62,15 @@ export const Repairs: React.FC = () => {
     }
   };
 
-  const loadPhones = async () => {
+const loadPhones = async () => {
     try {
       const { data, error } = await supabase
         .from('phones')
         .select('id, model, imei')
         .eq('user_id', userId!)
-        .eq('archived', false)
-        .eq('is_sold', false)
-        .order('model');
+        .eq('archived', false)  // ← FILTRE AJOUTÉ : exclure les téléphones archivés
+        .eq('is_sold', false)   // ← BONUS : exclure aussi les téléphones vendus
+        .order('model');        // ← BONUS : trier par modèle pour faciliter la sélection
 
       if (error) throw error;
       setPhones(data || []);
@@ -129,6 +128,7 @@ export const Repairs: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // TRI DES RÉPARATIONS : in_progress en premier, puis pending, puis completed, puis failed
   const sortedRepairs = filteredRepairs.sort((a, b) => {
     const statusPriority = {
       'in_progress': 0,
@@ -140,6 +140,7 @@ export const Repairs: React.FC = () => {
     const priorityA = statusPriority[a.status];
     const priorityB = statusPriority[b.status];
 
+    // Si même statut, trier par date (plus récent en premier)
     if (priorityA === priorityB) {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
@@ -184,6 +185,7 @@ export const Repairs: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
@@ -203,6 +205,7 @@ export const Repairs: React.FC = () => {
         </button>
       </div>
 
+      {/* SEARCH + FILTERS */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -224,6 +227,7 @@ export const Repairs: React.FC = () => {
         </button>
       </div>
 
+      {/* FILTER PANEL */}
       {showFilters && (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-4 animate-slide-down">
           <div className="flex gap-2 flex-wrap">
@@ -250,6 +254,7 @@ export const Repairs: React.FC = () => {
         </div>
       )}
 
+      {/* EMPTY LIST */}
       {sortedRepairs.length === 0 ? (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
@@ -302,6 +307,7 @@ export const Repairs: React.FC = () => {
                 </div>
               </div>
 
+              {/* ACTIONS */}
               <div className="flex items-center justify-between pt-4 border-t border-white/10">
                 
                 <div className="flex gap-2">
