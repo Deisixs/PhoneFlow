@@ -171,18 +171,14 @@ export function Analytics() {
     const totalRepairCost = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
     const totalMaterielCost = filtered.materielExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
 
-    const revenue =
-      totalPhoneCA -
-      totalPurchaseCost -
-      totalRepairCost -
-      totalMaterielCost;
+    const revenue = totalPhoneCA - totalPurchaseCost - totalRepairCost - totalMaterielCost;
 
     const totalStockValue = filtered.stockPieces.reduce(
       (sum, s) => sum + (Number(s.purchase_price) * Number(s.quantity)),
       0
     );
 
-    // NOUVEAU : Calcul du profit net (vente - achat - réparations)
+    // Calcul du profit net (vente - achat - réparations)
     const netProfitData = soldPhones.map(phone => {
       const phoneRepairs = repairs.filter(r => 
         r.phone_id === phone.id && 
@@ -201,7 +197,7 @@ export function Analytics() {
     const totalNetProfit = netProfitData.reduce((sum, item) => sum + item.netProfit, 0);
     const averageNetProfit = netProfitData.length > 0 ? totalNetProfit / netProfitData.length : 0;
 
-    // NOUVEAU : Argent gelé (prix d'achat des téléphones non vendus)
+    // Argent gelé (prix d'achat des téléphones non vendus)
     const unsoldPhones = filtered.phones.filter(p => !isPhoneSold(p));
     const frozenMoney = unsoldPhones.reduce((sum, p) => sum + Number(p.purchase_price), 0);
 
@@ -225,10 +221,10 @@ export function Analytics() {
     const dataMap = new Map<string, { date: string; ca: number; revenue: number; expenses: number }>();
 
     const getOrCreateEntry = (dateStr: string) => {
-        if (!dataMap.has(dateStr)) {
-            dataMap.set(dateStr, { date: dateStr, ca: 0, revenue: 0, expenses: 0 });
-        }
-        return dataMap.get(dateStr)!;
+      if (!dataMap.has(dateStr)) {
+        dataMap.set(dateStr, { date: dateStr, ca: 0, revenue: 0, expenses: 0 });
+      }
+      return dataMap.get(dateStr)!;
     };
 
     filtered.phones.forEach((phone) => {
@@ -264,9 +260,7 @@ export function Analytics() {
       entry.expenses += amount;
     });
 
-    return [...dataMap.values()].sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    return [...dataMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   };
 
   const generatePieData = () => {
@@ -348,55 +342,7 @@ export function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20">
-              <DollarSign className="text-blue-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Chiffre d'affaires</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.ca.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Total des ventes</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/20">
-              <TrendingUp className="text-green-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Bénéfice net</span>
-          </div>
-          <p className={`text-3xl font-bold ${stats.revenue >= 0 ? 'text-white' : 'text-red-400'}`}>
-            {stats.revenue.toFixed(2)} €
-          </p>
-          <p className="text-sm text-gray-400 mt-1">Après déduction des frais</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20">
-              <ShoppingCart className="text-violet-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Téléphones</span>
-          </div>
-          <p className="text-3xl font-bold text-white">
-            {stats.totalPurchased} / {stats.totalSold}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
-        </div>
-
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20">
-              <Wrench className="text-orange-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Coût matériel</span>
-          </div>
-          <p className="text-3xl font-bold text-white">{stats.totalMaterielCost.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Frais d'entretien</p>
-        </div>
-
-        {/* NOUVEAU : Profit Net au lieu de Stock pièces */}
+        {/* 1. PROFIT NET TOTAL */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20">
@@ -410,6 +356,57 @@ export function Analytics() {
           <p className="text-sm text-gray-400 mt-1">Vente - (Achat + Réparations)</p>
         </div>
 
+        {/* 2. CHIFFRE D'AFFAIRES */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20">
+              <DollarSign className="text-blue-400" size={24} />
+            </div>
+            <span className="text-sm text-gray-400">Chiffre d'affaires</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{stats.ca.toFixed(2)} €</p>
+          <p className="text-sm text-gray-400 mt-1">Total des ventes</p>
+        </div>
+
+        {/* 3. ARGENT GELÉ */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20">
+              <Lock className="text-amber-400" size={24} />
+            </div>
+            <span className="text-sm text-gray-400">Argent gelé</span>
+          </div>
+          <p className="text-3xl font-bold text-amber-400">{stats.frozenMoney.toFixed(2)} €</p>
+          <p className="text-sm text-gray-400 mt-1">Stock non vendu</p>
+        </div>
+
+        {/* 4. TÉLÉPHONES ACHETÉS / VENDUS */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20">
+              <ShoppingCart className="text-violet-400" size={24} />
+            </div>
+            <span className="text-sm text-gray-400">Téléphones</span>
+          </div>
+          <p className="text-3xl font-bold text-white">
+            {stats.totalPurchased} / {stats.totalSold}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
+        </div>
+
+        {/* 5. COÛT MATÉRIEL */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20">
+              <Package className="text-orange-400" size={24} />
+            </div>
+            <span className="text-sm text-gray-400">Coût matériel</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{stats.totalMaterielCost.toFixed(2)} €</p>
+          <p className="text-sm text-gray-400 mt-1">Frais d'entretien</p>
+        </div>
+
+        {/* 6. COÛT DES RÉPARATIONS */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20">
@@ -420,7 +417,6 @@ export function Analytics() {
           <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
         </div>
-
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -440,20 +436,8 @@ export function Analytics() {
                 }}
               />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="ca"
-                stroke="#8b5cf6"
-                strokeWidth={2}
-                name="CA (€)"
-              />
-              <Line
-                type="monotone"
-                dataKey="revenue"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Bénéfice (€)"
-              />
+              <Line type="monotone" dataKey="ca" stroke="#8b5cf6" strokeWidth={2} name="CA (€)" />
+              <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Bénéfice (€)" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -462,14 +446,7 @@ export function Analytics() {
           <h3 className="text-lg font-semibold text-white mb-6">Répartition des revenus</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                paddingAngle={4}
-                dataKey="value"
-              >
+              <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} paddingAngle={4} dataKey="value">
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
@@ -479,7 +456,7 @@ export function Analytics() {
                   backgroundColor: '#1f2937',
                   border: '1px solid #374151',
                   borderRadius: '8px',
-                   color: '#fff'
+                  color: '#fff'
                 }}
               />
               <Legend />
@@ -499,7 +476,7 @@ export function Analytics() {
                   backgroundColor: '#1f2937',
                   border: '1px solid #374151',
                   borderRadius: '8px',
-                   color: '#fff'
+                  color: '#fff'
                 }}
               />
               <Legend />
