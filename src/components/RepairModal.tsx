@@ -62,26 +62,24 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           .eq('id', repair.id);
 
         if (error) throw error;
-        showToast('Réparation modifiée avec succès', 'success');
+        showToast('Reparation modifiee avec succes', 'success');
       } else {
         const { error } = await supabase.from('repairs').insert(repairData);
 
         if (error) throw error;
-        showToast('Réparation ajoutée avec succès', 'success');
+        showToast('Reparation ajoutee avec succes', 'success');
       }
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de l'enregistrement', 'error');
+      showToast(error.message || 'Erreur lors de l enregistrement', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   const handlePiecesChange = (costChange: number) => {
-    // Le coût est automatiquement mis à jour en base par les triggers SQL
-    // On peut rafraîchir l'affichage si besoin
-    console.log(`Coût des pièces modifié de ${costChange}€`);
+    console.log('Cout des pieces modifie de', costChange, 'euros');
   };
 
   return (
@@ -90,7 +88,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {repair ? 'Modifier la réparation' : 'Ajouter une réparation'}
+            {repair ? 'Modifier la reparation' : 'Ajouter une reparation'}
           </h2>
           <button
             onClick={onClose}
@@ -103,14 +101,14 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Téléphone</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Telephone</label>
             <select
               value={formData.phone_id}
               onChange={(e) => setFormData({ ...formData, phone_id: e.target.value })}
               required
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
             >
-              <option value="" className="bg-gray-900">Sélectionner un téléphone</option>
+              <option value="" className="bg-gray-900">Selectionner un telephone</option>
               {phones.map((phone) => (
                 <option key={phone.id} value={phone.id} className="bg-gray-900">
                   {phone.model} - {phone.imei}
@@ -127,26 +125,26 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               required
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-              placeholder="Changement d'écran, batterie, etc."
+              placeholder="Changement d'ecran, batterie, etc."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Détails de la réparation</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Details de la reparation</label>
             <textarea
               value={formData.repair_list}
               onChange={(e) => setFormData({ ...formData, repair_list: e.target.value })}
               required
               rows={4}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
-              placeholder="Liste de toutes les réparations effectuées..."
+              placeholder="Liste de toutes les reparations effectuees..."
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Coût manuel (€)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Cout manuel (€)</label>
               <input
                 type="number"
                 step="0.01"
@@ -156,7 +154,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Le coût des pièces du stock s'ajoute automatiquement
+                Le cout des pieces du stock s'ajoute automatiquement
               </p>
             </div>
 
@@ -170,8 +168,8 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               >
                 <option value="pending" className="bg-gray-900">En attente</option>
                 <option value="in_progress" className="bg-gray-900">En cours</option>
-                <option value="completed" className="bg-gray-900">Terminée</option>
-                <option value="failed" className="bg-gray-900">Échec</option>
+                <option value="completed" className="bg-gray-900">Terminee</option>
+                <option value="failed" className="bg-gray-900">Echec</option>
               </select>
             </div>
 
@@ -199,12 +197,11 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
           </div>
 
-          {/* SECTION PIÈCES DU STOCK */}
           {repair?.id ? (
             <div className="border-t border-white/10 pt-6 mt-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
-                Pièces du stock
+                Pieces du stock
               </h3>
               <StockPieceSelector 
                 repairId={repair.id}
@@ -215,7 +212,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             <div className="border-t border-white/10 pt-6 mt-6">
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                 <p className="text-sm text-blue-300">
-                  💡 Enregistrez d'abord la réparation pour pouvoir ajouter des pièces du stock
+                  💡 Enregistrez d'abord la reparation pour pouvoir ajouter des pieces du stock
                 </p>
               </div>
             </div>
@@ -241,7 +238,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                   Enregistrement...
                 </>
               ) : (
-                'Enregistrer la réparation'
+                'Enregistrer la reparation'
               )}
             </button>
           </div>
