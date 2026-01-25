@@ -6,7 +6,8 @@ import {
   Package,
   Wrench,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  Target
 } from 'lucide-react';
 import {
   LineChart,
@@ -28,14 +29,13 @@ import { useAuth } from '../contexts/AuthContext';
 
 type TimeRange = '7days' | '30days' | '90days' | '1year' | 'all';
 
-// CORRECTION ICI : J'ai mis à jour l'interface pour correspondre à ta capture d'écran console
 interface Phone {
   id: string;
   purchase_price: number;
   purchase_date: string;
-  sale_price: number | null; // C'était selling_price
-  sale_date: string | null;  // C'était sold_at
-  is_sold: boolean | null;   // C'était status
+  sale_price: number | null;
+  sale_date: string | null;
+  is_sold: boolean | null;
 }
 
 interface Repair {
@@ -44,6 +44,7 @@ interface Repair {
   created_at: string;
   completed_at: string | null;
   phone_id: string;
+  status: string;
 }
 
 interface StockPiece {
@@ -101,17 +102,12 @@ export function Analytics() {
     }
   };
 
-  // --- FONCTIONS UTILITAIRES CORRIGÉES ---
-
-  // Vérifie si vendu en utilisant 'is_sold' ou la présence d'une date de vente
   const isPhoneSold = (p: Phone) => {
     return p.is_sold === true || !!p.sale_date;
   };
 
-  // Récupère la date "effective" pour le graphique
   const getPhoneDate = (p: Phone) => {
     if (isPhoneSold(p)) {
-      // Si vendu mais pas de date sale_date, on utilise AUJOURD'HUI
       return p.sale_date ? new Date(p.sale_date) : new Date(); 
     }
     return new Date(p.purchase_date);
@@ -121,7 +117,6 @@ export function Analytics() {
     const now = new Date();
     let startDate: Date;
 
-    // Réinitialiser l'heure
     now.setHours(23, 59, 59, 999);
 
     switch (timeRange) {
@@ -165,21 +160,16 @@ export function Analytics() {
 
     const totalPurchased = filtered.phones.length;
     
-    // Filtrer les vendus
     const soldPhones = filtered.phones.filter(isPhoneSold);
     const totalSold = soldPhones.length;
 
-    // VENTES (CA) - Correction : on utilise sale_price
     const totalPhoneCA = soldPhones.reduce((sum, p) => sum + Number(p.sale_price || 0), 0);
-
     const ca = totalPhoneCA;
 
-    // COÛTS
     const totalPurchaseCost = filtered.phones.reduce((sum, p) => sum + Number(p.purchase_price || 0), 0);
     const totalRepairCost = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
     const totalMaterielCost = filtered.materielExpenses.reduce((sum, m) => sum + Number(m.amount || 0), 0);
 
-    // BENEFICE
     const revenue =
       totalPhoneCA -
       totalPurchaseCost -
@@ -191,6 +181,25 @@ export function Analytics() {
       0
     );
 
+    // NOUVEAU : Calcul du profit net (vente - achat - réparations)
+    const netProfitData = soldPhones.map(phone => {
+      const phoneRepairs = repairs.filter(r => 
+        r.phone_id === phone.id && 
+        r.status === 'completed'
+      );
+      const repairCosts = phoneRepairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
+      
+      return {
+        netProfit: Number(phone.sale_price || 0) - Number(phone.purchase_price) - repairCosts,
+        salePrice: Number(phone.sale_price || 0),
+        purchasePrice: Number(phone.purchase_price),
+        repairCosts: repairCosts
+      };
+    });
+
+    const totalNetProfit = netProfitData.reduce((sum, item) => sum + item.netProfit, 0);
+    const averageNetProfit = netProfitData.length > 0 ? totalNetProfit / netProfitData.length : 0;
+
     return {
       ca,
       revenue,
@@ -199,6 +208,9 @@ export function Analytics() {
       totalMaterielCost,
       totalStockValue,
       totalRepairCost,
+      totalNetProfit,
+      averageNetProfit,
+      netProfitCount: netProfitData.length
     };
   };
 
@@ -216,14 +228,12 @@ export function Analytics() {
         return dataMap.get(dateStr)!;
     };
 
-    // --- 1️⃣ CA & Ventes Téléphones
     filtered.phones.forEach((phone) => {
       if (isPhoneSold(phone)) {
         const dateObj = getPhoneDate(phone);
         const date = dateObj.toISOString().split("T")[0];
         
         const entry = getOrCreateEntry(date);
-        // Correction : sale_price au lieu de selling_price
         const sellingPrice = Number(phone.sale_price || 0);
         const purchasePrice = Number(phone.purchase_price || 0);
 
@@ -232,7 +242,6 @@ export function Analytics() {
       }
     });
 
-    // --- 2️⃣ Coût des réparations
     filtered.repairs.forEach((repair) => {
       const dateRef = repair.completed_at || repair.created_at;
       const date = new Date(dateRef).toISOString().split("T")[0];
@@ -243,7 +252,6 @@ export function Analytics() {
       entry.expenses += cost;
     });
 
-    // --- 3️⃣ Coût matériel
     filtered.materielExpenses.forEach((exp) => {
       const date = new Date(exp.purchase_date).toISOString().split("T")[0];
       const entry = getOrCreateEntry(date);
@@ -262,8 +270,6 @@ export function Analytics() {
     const filtered = getFilteredDataByTimeRange();
 
     let repairRevenue = filtered.repairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
-    
-    // Correction : sale_price
     let phoneMargin = filtered.phones
       .filter(isPhoneSold)
       .reduce((sum, p) => sum + (Number(p.sale_price || 0) - Number(p.purchase_price || 0)), 0);
@@ -376,7 +382,7 @@ export function Analytics() {
           <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
         </div>
 
-         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/20">
               <Wrench className="text-orange-400" size={24} />
@@ -387,15 +393,18 @@ export function Analytics() {
           <p className="text-sm text-gray-400 mt-1">Frais d'entretien</p>
         </div>
 
+        {/* NOUVEAU : Profit Net au lieu de Stock pièces */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-600/20">
-              <Package className="text-pink-400" size={24} />
+            <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20">
+              <Target className="text-emerald-400" size={24} />
             </div>
-            <span className="text-sm text-gray-400">Valeur stock pièces</span>
+            <span className="text-sm text-gray-400">Profit Net Total</span>
           </div>
-          <p className="text-3xl font-bold text-white">{stats.totalStockValue.toFixed(2)} €</p>
-          <p className="text-sm text-gray-400 mt-1">Investissement total</p>
+          <p className={`text-3xl font-bold ${stats.totalNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {stats.totalNetProfit.toFixed(2)} €
+          </p>
+          <p className="text-sm text-gray-400 mt-1">Vente - (Achat + Réparations)</p>
         </div>
 
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
@@ -407,6 +416,34 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
+        </div>
+
+        {/* NOUVELLE CARTE : Profit Net Moyen */}
+        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-600/20">
+              <Package className="text-pink-400" size={24} />
+            </div>
+            <span className="text-sm text-gray-400">Profit Net Moyen</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className={`text-3xl font-bold ${stats.averageNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.averageNetProfit.toFixed(2)} €
+              </p>
+              <p className="text-sm text-gray-400 mt-1">Par téléphone vendu</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{stats.netProfitCount}</p>
+              <p className="text-sm text-gray-400 mt-1">Téléphones analysés</p>
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${stats.totalNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.totalNetProfit >= 0 ? '+' : ''}{stats.totalNetProfit.toFixed(2)} €
+              </p>
+              <p className="text-sm text-gray-400 mt-1">Total cumulé</p>
+            </div>
+          </div>
         </div>
       </div>
 
