@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Filter, Eye, Edit, Trash2, Copy, ExternalLink
+  Plus, Search, Filter, Eye, Edit, Trash2, Copy, ExternalLink, Archive
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +24,7 @@ interface Phone {
   is_sold: boolean;
   qr_code: string | null;
   created_at: string;
+  archived: boolean;
 }
 
 interface Repair {
@@ -47,6 +48,7 @@ export const Inventory: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] =
     useState<'all' | 'available' | 'sold' | 'repair'>('all');
+  const [showArchived, setShowArchived] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -145,24 +147,68 @@ export const Inventory: React.FC = () => {
   };
 
   // ---------------------
+  // ARCHIVAGE
+  // ---------------------
+  const handleArchiveToggle = async (phone: Phone) => {
+    try {
+      const { error } = await supabase
+        .from('phones')
+        .update({ archived: !phone.archived })
+        .eq('id', phone.id);
+
+      if (error) throw error;
+
+      showToast(
+        phone.archived ? 'Téléphone désarchivé' : 'Téléphone archivé',
+        'success'
+      );
+      loadPhones();
+      setSelectedPhone(null);
+      setShowDetailModal(false);
+    } catch {
+      showToast('Erreur lors de l\'archivage', 'error');
+    }
+  };
+
+  // ---------------------
+  // DELETE
+  // ---------------------
+  const handleDelete = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce téléphone ?')) return;
+
+    try {
+      const { error } = await supabase.from('phones').delete().eq('id', id);
+
+      if (error) throw error;
+
+      showToast('Téléphone supprimé', 'success');
+      loadPhones();
+    } catch {
+      showToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  // ---------------------
   // FILTERING
   // ---------------------
-  const filteredPhones = phones.filter((phone) => {
-    const status = getPhoneStatus(phone);
+  const filteredPhones = phones
+    .filter((phone) => (showArchived ? phone.archived : !phone.archived))
+    .filter((phone) => {
+      const status = getPhoneStatus(phone);
 
-    const matchesSearch =
-      phone.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      phone.imei.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      phone.color.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        phone.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        phone.imei.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        phone.color.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      filterStatus === 'all' ||
-      (filterStatus === 'sold' && status === 'sold') ||
-      (filterStatus === 'available' && status === 'available') ||
-      (filterStatus === 'repair' && status === 'repair');
+      const matchesStatus =
+        filterStatus === 'all' ||
+        (filterStatus === 'sold' && status === 'sold') ||
+        (filterStatus === 'available' && status === 'available') ||
+        (filterStatus === 'repair' && status === 'repair');
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    });
 
   // ---------------------
   // UI
@@ -217,6 +263,18 @@ export const Inventory: React.FC = () => {
         >
           <Filter className="w-5 h-5" />
           Filtres
+        </button>
+
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-colors ${
+            showArchived
+              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              : 'bg-white/5 text-gray-400 border border-white/10'
+          }`}
+        >
+          <Archive className="w-5 h-5" />
+          {showArchived ? 'Voir actifs' : 'Voir archivés'}
         </button>
       </div>
 
@@ -309,6 +367,14 @@ export const Inventory: React.FC = () => {
                 </button>
 
                 <button
+                  onClick={() => handleArchiveToggle(phone)}
+                  className="flex-1 bg-yellow-600/20 text-yellow-400 p-2 rounded-lg"
+                  title={phone.archived ? 'Désarchiver' : 'Archiver'}
+                >
+                  <Archive className="w-4 h-4" />
+                </button>
+
+                <button
                   onClick={() => handleDelete(phone.id)}
                   className="flex-1 bg-red-600/20 text-red-400 p-2 rounded-lg"
                 >
@@ -319,6 +385,17 @@ export const Inventory: React.FC = () => {
           );
         })}
       </div>
+
+      {filteredPhones.length === 0 && (
+        <div className="text-center py-12">
+          <Archive className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <p className="text-gray-400">
+            {showArchived
+              ? 'Aucun téléphone archivé'
+              : 'Aucun téléphone trouvé'}
+          </p>
+        </div>
+      )}
 
       {showModal && (
         <PhoneModal
