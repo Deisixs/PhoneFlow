@@ -125,6 +125,26 @@ export const Repairs: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // TRI DES RÉPARATIONS : in_progress en premier, puis pending, puis completed, puis failed
+  const sortedRepairs = filteredRepairs.sort((a, b) => {
+    const statusPriority = {
+      'in_progress': 0,
+      'pending': 1,
+      'completed': 2,
+      'failed': 3
+    };
+
+    const priorityA = statusPriority[a.status];
+    const priorityB = statusPriority[b.status];
+
+    // Si même statut, trier par date (plus récent en premier)
+    if (priorityA === priorityB) {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+
+    return priorityA - priorityB;
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -232,7 +252,7 @@ export const Repairs: React.FC = () => {
       )}
 
       {/* EMPTY LIST */}
-      {filteredRepairs.length === 0 ? (
+      {sortedRepairs.length === 0 ? (
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
             <Search className="w-10 h-10 text-gray-400" />
@@ -245,7 +265,7 @@ export const Repairs: React.FC = () => {
       ) : (
         <div className="space-y-4">
 
-          {filteredRepairs.map((repair) => (
+          {sortedRepairs.map((repair) => (
             <div
               key={repair.id}
               className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300"
