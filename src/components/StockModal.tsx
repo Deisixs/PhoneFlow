@@ -9,7 +9,6 @@ interface StockPiece {
   quantity: number;
   supplier: string;
   supplier_link: string;
-  phone_model: string; // ⬅️ AJOUTÉ
 }
 
 interface StockModalProps {
@@ -26,8 +25,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
     purchase_price: 0,
     quantity: 0,
     supplier: "",
-    supplier_link: "",
-    phone_model: "iPhone 15" // ⬅️ AJOUTÉ
+    supplier_link: ""
   });
 
   useEffect(() => {
@@ -40,8 +38,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
         purchase_price: 0,
         quantity: 0,
         supplier: "",
-        supplier_link: "",
-        phone_model: "iPhone 15" // ⬅️ AJOUTÉ
+        supplier_link: ""
       });
     }
   }, [piece, isOpen]);
@@ -59,7 +56,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto 
       bg-neutral-900/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
 
-        {/* HEADER */}
+        {/* HEADER IDENTIQUE À PHONEMODAL */}
         <div className="sticky top-0 z-10 bg-neutral-900/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
             {piece ? "Modifier une pièce" : "Ajouter une pièce"}
@@ -83,41 +80,8 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
               text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              placeholder="Ex : Écran OLED"
+              placeholder="Ex : Écran iPhone 13"
             />
-          </div>
-
-          {/* Modèle de téléphone - NOUVEAU */}
-          <div>
-            <label className="text-sm text-gray-300 mb-1 block">Modèle de téléphone *</label>
-            <select
-              required
-              value={formData.phone_model}
-              onChange={(e) => setFormData({ ...formData, phone_model: e.target.value })}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-              text-white focus:ring-2 focus:ring-violet-500/40"
-            >
-              <option value="iPhone 15">iPhone 15</option>
-              <option value="iPhone 15 Plus">iPhone 15 Plus</option>
-              <option value="iPhone 15 Pro">iPhone 15 Pro</option>
-              <option value="iPhone 15 Pro Max">iPhone 15 Pro Max</option>
-              <option value="iPhone 14">iPhone 14</option>
-              <option value="iPhone 14 Plus">iPhone 14 Plus</option>
-              <option value="iPhone 14 Pro">iPhone 14 Pro</option>
-              <option value="iPhone 14 Pro Max">iPhone 14 Pro Max</option>
-              <option value="iPhone 13">iPhone 13</option>
-              <option value="iPhone 13 Mini">iPhone 13 Mini</option>
-              <option value="iPhone 13 Pro">iPhone 13 Pro</option>
-              <option value="iPhone 13 Pro Max">iPhone 13 Pro Max</option>
-              <option value="iPhone 12">iPhone 12</option>
-              <option value="iPhone 12 Mini">iPhone 12 Mini</option>
-              <option value="iPhone 12 Pro">iPhone 12 Pro</option>
-              <option value="iPhone 12 Pro Max">iPhone 12 Pro Max</option>
-              <option value="iPhone 11">iPhone 11</option>
-              <option value="iPhone 11 Pro">iPhone 11 Pro</option>
-              <option value="iPhone 11 Pro Max">iPhone 11 Pro Max</option>
-              <option value="Autre">Autre</option>
-            </select>
           </div>
 
           {/* Description */}
@@ -139,8 +103,6 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
               <label className="text-sm text-gray-300 mb-1 block">Prix d'achat (€) *</label>
               <input
                 type="number"
-                step="0.01"
-                min="0"
                 value={formData.purchase_price}
                 onChange={(e) =>
                   setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })
@@ -154,7 +116,6 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
               <label className="text-sm text-gray-300 mb-1 block">Quantité *</label>
               <input
                 type="number"
-                min="0"
                 value={formData.quantity}
                 onChange={(e) =>
                   setFormData({ ...formData, quantity: parseInt(e.target.value) })
