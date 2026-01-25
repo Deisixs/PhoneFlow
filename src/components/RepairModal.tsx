@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,50 +40,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     photo_url: repair?.photo_url || '',
   });
   const [loading, setLoading] = useState(false);
-  const [stockPiecesCost, setStockPiecesCost] = useState(0);
   const { userId } = useAuth();
   const { showToast } = useToast();
-
-  // Charger le coût des pièces au chargement du modal
-  useEffect(() => {
-    if (repair?.id) {
-      loadRepairPartsCost(repair.id);
-    }
-  }, [repair?.id]);
-
-  const loadRepairPartsCost = async (repairId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('repair_parts')
-        .select(`
-          quantity_used,
-          stock_piece:stock_pieces(purchase_price)
-        `)
-        .eq('repair_id', repairId);
-
-      if (error) throw error;
-
-      const totalCost = (data || []).reduce((sum, part: any) => {
-        return sum + (part.stock_piece?.purchase_price || 0) * part.quantity_used;
-      }, 0);
-
-      setStockPiecesCost(totalCost);
-    } catch (error) {
-      console.error('Erreur lors du chargement du coût des pièces:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Le coût total = coût manuel + coût des pièces du stock
-      const totalCost = formData.cost + stockPiecesCost;
-
       const repairData = {
         ...formData,
-        cost: totalCost, // Coût total incluant les pièces
         user_id: userId!,
         technician: formData.technician || null,
         photo_url: formData.photo_url || null,
@@ -96,45 +62,24 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           .eq('id', repair.id);
 
         if (error) throw error;
-        showToast('Réparation modifiée avec succès', 'success');
+        showToast('Reparation modifiee avec succes', 'success');
       } else {
         const { error } = await supabase.from('repairs').insert(repairData);
 
         if (error) throw error;
-        showToast('Réparation ajoutée avec succès', 'success');
+        showToast('Reparation ajoutee avec succes', 'success');
       }
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de l\'enregistrement', 'error');
+      showToast(error.message || 'Erreur lors de l enregistrement', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePiecesChange = async (costChange: number) => {
-    // Mettre à jour le coût des pièces
-    const newStockPiecesCost = stockPiecesCost + costChange;
-    setStockPiecesCost(newStockPiecesCost);
-
-    // Mettre à jour immédiatement dans la base de données
-    if (repair?.id) {
-      try {
-        const totalCost = formData.cost + newStockPiecesCost;
-        
-        const { error } = await supabase
-          .from('repairs')
-          .update({ cost: totalCost })
-          .eq('id', repair.id);
-
-        if (error) throw error;
-        
-        console.log('Coût mis à jour:', totalCost, '€ (Manuel:', formData.cost, '€ + Pièces:', newStockPiecesCost, '€)');
-      } catch (error) {
-        console.error('Erreur lors de la mise à jour du coût:', error);
-        showToast('Erreur lors de la mise à jour du coût', 'error');
-      }
-    }
+  const handlePiecesChange = (costChange: number) => {
+    console.log('Cout des pieces modifie de', costChange, 'euros');
   };
 
   return (
@@ -143,7 +88,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {repair ? 'Modifier la réparation' : 'Ajouter une réparation'}
+            {repair ? 'Modifier la reparation' : 'Ajouter une reparation'}
           </h2>
           <button
             onClick={onClose}
@@ -156,14 +101,14 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Téléphone</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Telephone</label>
             <select
               value={formData.phone_id}
               onChange={(e) => setFormData({ ...formData, phone_id: e.target.value })}
               required
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
             >
-              <option value="" className="bg-gray-900">Sélectionner un téléphone</option>
+              <option value="" className="bg-gray-900">Selectionner un telephone</option>
               {phones.map((phone) => (
                 <option key={phone.id} value={phone.id} className="bg-gray-900">
                   {phone.model} - {phone.imei}
@@ -180,47 +125,36 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               required
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-              placeholder="Changement d'écran, batterie, etc."
+              placeholder="Changement d'ecran, batterie, etc."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Détails de la réparation</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Details de la reparation</label>
             <textarea
               value={formData.repair_list}
               onChange={(e) => setFormData({ ...formData, repair_list: e.target.value })}
               required
               rows={4}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
-              placeholder="Liste de toutes les réparations effectuées..."
+              placeholder="Liste de toutes les reparations effectuees..."
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Coût manuel (€)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Cout manuel (€)</label>
               <input
                 type="number"
                 step="0.01"
                 value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
+                required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Coût manuel (main d'œuvre, etc.)
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Coût total (€)</label>
-              <div className="w-full px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl">
-                <p className="text-xl font-bold text-violet-400">
-                  {(formData.cost + stockPiecesCost).toFixed(2)}€
-                </p>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Manuel: {formData.cost.toFixed(2)}€ + Pièces: {stockPiecesCost.toFixed(2)}€
+                Le cout des pieces du stock s'ajoute automatiquement
               </p>
             </div>
 
@@ -234,8 +168,8 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               >
                 <option value="pending" className="bg-gray-900">En attente</option>
                 <option value="in_progress" className="bg-gray-900">En cours</option>
-                <option value="completed" className="bg-gray-900">Terminée</option>
-                <option value="failed" className="bg-gray-900">Échec</option>
+                <option value="completed" className="bg-gray-900">Terminee</option>
+                <option value="failed" className="bg-gray-900">Echec</option>
               </select>
             </div>
 
@@ -250,7 +184,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               />
             </div>
 
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">URL Photo (Optionnel)</label>
               <input
                 type="url"
@@ -267,7 +201,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             <div className="border-t border-white/10 pt-6 mt-6">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
-                Pièces du stock
+                Pieces du stock
               </h3>
               <StockPieceSelector 
                 repairId={repair.id}
@@ -278,7 +212,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             <div className="border-t border-white/10 pt-6 mt-6">
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                 <p className="text-sm text-blue-300">
-                  💡 Enregistrez d'abord la réparation pour pouvoir ajouter des pièces du stock
+                  💡 Enregistrez d'abord la reparation pour pouvoir ajouter des pieces du stock
                 </p>
               </div>
             </div>
@@ -304,7 +238,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                   Enregistrement...
                 </>
               ) : (
-                'Enregistrer la réparation'
+                'Enregistrer la reparation'
               )}
             </button>
           </div>
