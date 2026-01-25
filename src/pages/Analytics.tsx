@@ -418,33 +418,6 @@ export function Analytics() {
           <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
         </div>
 
-        {/* NOUVELLE CARTE : Profit Net Moyen */}
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all lg:col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500/20 to-pink-600/20">
-              <Package className="text-pink-400" size={24} />
-            </div>
-            <span className="text-sm text-gray-400">Profit Net Moyen</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className={`text-3xl font-bold ${stats.averageNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {stats.averageNetProfit.toFixed(2)} €
-              </p>
-              <p className="text-sm text-gray-400 mt-1">Par téléphone vendu</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{stats.netProfitCount}</p>
-              <p className="text-sm text-gray-400 mt-1">Téléphones analysés</p>
-            </div>
-            <div>
-              <p className={`text-2xl font-bold ${stats.totalNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {stats.totalNetProfit >= 0 ? '+' : ''}{stats.totalNetProfit.toFixed(2)} €
-              </p>
-              <p className="text-sm text-gray-400 mt-1">Total cumulé</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
