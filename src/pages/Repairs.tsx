@@ -62,12 +62,15 @@ export const Repairs: React.FC = () => {
     }
   };
 
-  const loadPhones = async () => {
+const loadPhones = async () => {
     try {
       const { data, error } = await supabase
         .from('phones')
         .select('id, model, imei')
-        .eq('user_id', userId!);
+        .eq('user_id', userId!)
+        .eq('archived', false)  // ← FILTRE AJOUTÉ : exclure les téléphones archivés
+        .eq('is_sold', false)   // ← BONUS : exclure aussi les téléphones vendus
+        .order('model');        // ← BONUS : trier par modèle pour faciliter la sélection
 
       if (error) throw error;
       setPhones(data || []);
