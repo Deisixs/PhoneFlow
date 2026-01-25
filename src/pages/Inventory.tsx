@@ -157,18 +157,30 @@ export const Inventory: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
+      const newArchivedState = !phone.archived;
+
+      // Archiver/désarchiver le téléphone
+      const { error: phoneError } = await supabase
         .from('phones')
-        .update({ archived: !phone.archived })
+        .update({ archived: newArchivedState })
         .eq('id', phone.id);
 
-      if (error) throw error;
+      if (phoneError) throw phoneError;
+
+      // Archiver/désarchiver toutes les réparations associées
+      const { error: repairError } = await supabase
+        .from('repairs')
+        .update({ archived: newArchivedState })
+        .eq('phone_id', phone.id);
+
+      if (repairError) throw repairError;
 
       showToast(
-        phone.archived ? 'Téléphone désarchivé' : 'Téléphone archivé',
+        newArchivedState ? 'Téléphone et réparations archivés' : 'Téléphone et réparations désarchivés',
         'success'
       );
       loadPhones();
+      loadRepairs();
       setSelectedPhone(null);
       setShowDetailModal(false);
     } catch {
