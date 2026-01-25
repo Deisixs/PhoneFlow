@@ -13,7 +13,7 @@ interface StockPiece {
   supplier: string;
   supplier_link: string;
   quantity: number;
-  phone_model: string; // ⬅️ AJOUTÉ
+  phone_model: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +25,7 @@ export default function Stock() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPiece, setSelectedPiece] = useState<StockPiece | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSeries, setSelectedSeries] = useState<string>('all'); // ⬅️ AJOUTÉ
+  const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -35,7 +35,6 @@ export default function Stock() {
     }
   }, [user]);
 
-  // ⬅️ MODIFIÉ pour inclure le filtre par série
   useEffect(() => {
     let filtered = pieces;
     
@@ -61,7 +60,6 @@ export default function Stock() {
     setFilteredPieces(filtered);
   }, [searchTerm, pieces, selectedSeries]);
 
-  // ⬅️ NOUVELLE FONCTION
   const getSeries = () => {
     const seriesSet = new Set<string>();
     pieces.forEach(piece => {
@@ -214,7 +212,6 @@ export default function Stock() {
         </div>
       </div>
 
-      {/* ⬅️ NOUVEAU : Onglets des séries */}
       {getSeries().length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
           <button
@@ -264,7 +261,6 @@ export default function Stock() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Pièce
                 </th>
-                {/* ⬅️ NOUVELLE COLONNE */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Modèle
                 </th>
@@ -312,7 +308,6 @@ export default function Stock() {
                         )}
                       </div>
                     </td>
-                    {/* ⬅️ NOUVELLE CELLULE */}
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30">
                         {piece.phone_model}
