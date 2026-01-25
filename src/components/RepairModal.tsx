@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
+import StockPieceSelector from './StockPieceSelector';
 
 interface Repair {
   id: string;
@@ -71,10 +72,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de l’enregistrement', 'error');
+      showToast(error.message || 'Erreur lors de l'enregistrement', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePiecesChange = (costChange: number) => {
+    // Le coût est automatiquement mis à jour en base par les triggers SQL
+    // On peut rafraîchir l'affichage si besoin
+    console.log(`Coût des pièces modifié de ${costChange}€`);
   };
 
   return (
@@ -139,7 +146,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Coût (€)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Coût manuel (€)</label>
               <input
                 type="number"
                 step="0.01"
@@ -148,6 +155,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 required
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
+              <p className="text-xs text-gray-400 mt-1">
+                Le coût des pièces du stock s'ajoute automatiquement
+              </p>
             </div>
 
             <div>
@@ -188,6 +198,28 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             </div>
 
           </div>
+
+          {/* SECTION PIÈCES DU STOCK */}
+          {repair?.id ? (
+            <div className="border-t border-white/10 pt-6 mt-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
+                Pièces du stock
+              </h3>
+              <StockPieceSelector 
+                repairId={repair.id}
+                onPiecesChange={handlePiecesChange}
+              />
+            </div>
+          ) : (
+            <div className="border-t border-white/10 pt-6 mt-6">
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <p className="text-sm text-blue-300">
+                  💡 Enregistrez d'abord la réparation pour pouvoir ajouter des pièces du stock
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button
