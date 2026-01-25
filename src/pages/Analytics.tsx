@@ -7,7 +7,8 @@ import {
   Wrench,
   Calendar,
   ChevronDown,
-  Target
+  Target,
+  Lock
 } from 'lucide-react';
 import {
   LineChart,
@@ -200,6 +201,10 @@ export function Analytics() {
     const totalNetProfit = netProfitData.reduce((sum, item) => sum + item.netProfit, 0);
     const averageNetProfit = netProfitData.length > 0 ? totalNetProfit / netProfitData.length : 0;
 
+    // NOUVEAU : Argent gelé (prix d'achat des téléphones non vendus)
+    const unsoldPhones = filtered.phones.filter(p => !isPhoneSold(p));
+    const frozenMoney = unsoldPhones.reduce((sum, p) => sum + Number(p.purchase_price), 0);
+
     return {
       ca,
       revenue,
@@ -210,7 +215,8 @@ export function Analytics() {
       totalRepairCost,
       totalNetProfit,
       averageNetProfit,
-      netProfitCount: netProfitData.length
+      netProfitCount: netProfitData.length,
+      frozenMoney
     };
   };
 
