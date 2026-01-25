@@ -150,6 +150,12 @@ export const Inventory: React.FC = () => {
   // ARCHIVAGE
   // ---------------------
   const handleArchiveToggle = async (phone: Phone) => {
+    // Si le téléphone n'est pas archivé et qu'on veut l'archiver
+    if (!phone.archived && !phone.is_sold) {
+      showToast('Impossible d\'archiver : le téléphone n\'est pas vendu', 'error');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('phones')
@@ -353,7 +359,7 @@ export const Inventory: React.FC = () => {
                   }}
                   className="flex-1 bg-violet-600/20 text-violet-400 p-2 rounded-lg"
                 >
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4 mx-auto" />
                 </button>
 
                 <button
@@ -363,22 +369,33 @@ export const Inventory: React.FC = () => {
                   }}
                   className="flex-1 bg-blue-600/20 text-blue-400 p-2 rounded-lg"
                 >
-                  <Edit className="w-4 h-4" />
+                  <Edit className="w-4 h-4 mx-auto" />
                 </button>
 
                 <button
                   onClick={() => handleArchiveToggle(phone)}
-                  className="flex-1 bg-yellow-600/20 text-yellow-400 p-2 rounded-lg"
-                  title={phone.archived ? 'Désarchiver' : 'Archiver'}
+                  disabled={!phone.archived && !phone.is_sold}
+                  className={`flex-1 p-2 rounded-lg transition-all ${
+                    !phone.archived && !phone.is_sold
+                      ? 'bg-gray-700/20 text-gray-600 cursor-not-allowed opacity-50'
+                      : 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30'
+                  }`}
+                  title={
+                    phone.archived
+                      ? 'Désarchiver'
+                      : phone.is_sold
+                      ? 'Archiver'
+                      : 'Archivage disponible uniquement pour les téléphones vendus'
+                  }
                 >
-                  <Archive className="w-4 h-4" />
+                  <Archive className="w-4 h-4 mx-auto" />
                 </button>
 
                 <button
                   onClick={() => handleDelete(phone.id)}
                   className="flex-1 bg-red-600/20 text-red-400 p-2 rounded-lg"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 mx-auto" />
                 </button>
               </div>
             </div>
