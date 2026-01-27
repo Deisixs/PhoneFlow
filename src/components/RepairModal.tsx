@@ -67,12 +67,18 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setLoading(true);
 
     try {
+      // Si c'est une modification, ne pas inclure cost (géré automatiquement par les triggers)
+      // Si c'est une création, inclure cost (manuel)
       const repairData = {
-        ...formData,
-        cost: Number(formData.cost) || 0,
+        phone_id: formData.phone_id,
+        description: formData.description,
+        repair_list: formData.repair_list,
+        status: formData.status,
         user_id: userId!,
         technician: formData.technician || null,
         photo_url: formData.photo_url || null,
+        // N'inclure cost QUE lors de la création
+        ...(repair?.id ? {} : { cost: Number(formData.cost) || 0 })
       };
 
       if (repair?.id) {
