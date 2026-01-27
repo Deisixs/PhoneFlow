@@ -51,7 +51,6 @@ export default function StockPieceSelector({ repairId, onPiecesChange }: StockPi
         .from('stock_pieces')
         .select('*')
         .eq('user_id', user.id)
-        .eq('archived', false)  // ← LIGNE AJOUTÉE : Ne charge que les pièces non archivées
         .gt('quantity', 0)
         .order('name');
 
