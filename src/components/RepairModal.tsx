@@ -34,7 +34,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     phone_id: repair?.phone_id || '',
     description: repair?.description || '',
     repair_list: repair?.repair_list || '',
-    cost: repair?.cost || 0,
+    cost: repair?.cost ?? 0, // Utilisez ?? au lieu de || pour gérer 0
     status: repair?.status || 'pending',
     technician: repair?.technician || '',
     photo_url: repair?.photo_url || '',
@@ -50,6 +50,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     try {
       const repairData = {
         ...formData,
+        cost: Number(formData.cost) || 0, // Convertir en nombre et forcer 0 si invalide
         user_id: userId!,
         technician: formData.technician || null,
         photo_url: formData.photo_url || null,
@@ -148,9 +149,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
-                required
+                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
               />
               <p className="text-xs text-gray-400 mt-1">
