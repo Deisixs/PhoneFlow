@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +34,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     phone_id: repair?.phone_id || '',
     description: repair?.description || '',
     repair_list: repair?.repair_list || '',
-    cost: repair?.cost ?? 0, // Utilisez ?? au lieu de || pour gérer 0
+    cost: repair?.cost ?? 0,
     status: repair?.status || 'pending',
     technician: repair?.technician || '',
     photo_url: repair?.photo_url || '',
@@ -43,6 +43,25 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   const { userId } = useAuth();
   const { showToast } = useToast();
 
+  // Recharger le coût depuis la base de données
+  const refreshCost = async () => {
+    if (!repair?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('repairs')
+        .select('cost')
+        .eq('id', repair.id)
+        .single();
+      
+      if (data && !error) {
+        setFormData(prev => ({ ...prev, cost: data.cost }));
+      }
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du coût:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -50,7 +69,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     try {
       const repairData = {
         ...formData,
-        cost: Number(formData.cost) || 0, // Convertir en nombre et forcer 0 si invalide
+        cost: Number(formData.cost) || 0,
         user_id: userId!,
         technician: formData.technician || null,
         photo_url: formData.photo_url || null,
@@ -79,8 +98,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     }
   };
 
-  const handlePiecesChange = (costChange: number) => {
-    console.log('Cout des pieces modifie de', costChange, 'euros');
+  const handlePiecesChange = async () => {
+    // Rafraîchir le coût depuis la base de données après modification des pièces
+    await refreshCost();
   };
 
   return (
@@ -145,17 +165,25 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Cout manuel (€)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.cost}
-                onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
-              />
+              <label className="block text-sm font-medium text-gray-300 mb-2">Cout total (€)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.cost}
+                  onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                  disabled={repair?.id ? true : false}
+                />
+                {repair?.id && (
+                  <div className="absolute inset-0 bg-white/5 rounded-xl pointer-events-none"></div>
+                )}
+              </div>
               <p className="text-xs text-gray-400 mt-1">
-                Le cout des pieces du stock s'ajoute automatiquement
+                {repair?.id 
+                  ? '✨ Coût calculé automatiquement avec les pièces du stock'
+                  : 'Entrez le coût manuel (0 par défaut)'}
               </p>
             </div>
 
