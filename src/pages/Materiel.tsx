@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Wrench, Plus, Pencil, Trash2, TrendingUp } from 'lucide-react';
+import { Wrench, Plus, Pencil, Trash2, TrendingUp, ExternalLink } from 'lucide-react'; // ← AJOUTÉ ExternalLink
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import MaterielModal from '../components/MaterielModal';
@@ -12,6 +12,7 @@ interface MaterielExpense {
   category: string;
   purchase_date: string;
   created_at: string;
+  product_link?: string; // ← AJOUTÉ
 }
 
 export default function Materiel() {
@@ -64,7 +65,7 @@ export default function Materiel() {
       }
       fetchExpenses();
     } catch {
-      showToast('Erreur lors de l’enregistrement', 'error');
+      showToast('Erreur lors de l'enregistrement', 'error');
     }
   };
 
@@ -237,9 +238,24 @@ export default function Materiel() {
                       {new Date(expense.purchase_date).toLocaleDateString('fr-FR')}
                     </td>
 
+                    {/* ========== MODIFIÉ : Description avec lien ========== */}
                     <td className="px-6 py-4">
-                      <p className="font-medium text-white">{expense.description}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white">{expense.description}</p>
+                        {expense.product_link && (
+                          <a
+                            href={expense.product_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-violet-400 hover:text-violet-300 transition-colors"
+                            title="Voir le produit"
+                          >
+                            <ExternalLink size={16} />
+                          </a>
+                        )}
+                      </div>
                     </td>
+                    {/* ================================================== */}
 
                     <td className="px-6 py-4">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
