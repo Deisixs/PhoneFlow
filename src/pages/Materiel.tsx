@@ -41,6 +41,7 @@ export default function Materiel() {
       if (error) throw error;
       setExpenses(data || []);
     } catch (error) {
+      console.error('Error fetching expenses:', error);
       showToast('Erreur lors du chargement des dépenses', 'error');
     } finally {
       setIsLoading(false);
@@ -64,8 +65,8 @@ export default function Materiel() {
         showToast('Dépense ajoutée', 'success');
       }
       fetchExpenses();
-    } catch {
-      showToast('Erreur lors de l'enregistrement', 'error');
+    } catch (error) {
+      showToast('Erreur lors de l\'enregistrement', 'error');
     }
   };
 
@@ -79,7 +80,7 @@ export default function Materiel() {
       if (error) throw error;
       showToast('Dépense supprimée', 'success');
       fetchExpenses();
-    } catch {
+    } catch (error) {
       showToast('Erreur lors de la suppression', 'error');
     }
   };
