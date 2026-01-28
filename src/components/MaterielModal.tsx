@@ -7,6 +7,7 @@ interface MaterielExpense {
   amount: number;
   category: string;
   purchase_date: string;
+  product_link?: string; // ← AJOUTÉ
 }
 
 interface MaterielModalProps {
@@ -45,6 +46,7 @@ export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: Ma
     amount: 0,
     category: 'Autres',
     purchase_date: new Date().toISOString().split('T')[0],
+    product_link: '', // ← AJOUTÉ
   });
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: Ma
         amount: 0,
         category: 'Autres',
         purchase_date: new Date().toISOString().split('T')[0],
+        product_link: '', // ← AJOUTÉ
       });
     }
   }, [expense, isOpen]);
@@ -104,6 +107,24 @@ export default function MaterielModal({ isOpen, onClose, onSubmit, expense }: Ma
               placeholder="Ex: Tournevis de précision"
             />
           </div>
+
+          {/* ========== NOUVEAU CHAMP : LIEN PRODUIT ========== */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Lien produit
+              <span className="text-gray-500 text-xs ml-2">(optionnel)</span>
+            </label>
+            <input
+              type="url"
+              value={formData.product_link || ''}
+              onChange={(e) => setFormData({ ...formData, product_link: e.target.value })}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
+              text-white placeholder-gray-500 focus:outline-none focus:ring-2 
+              focus:ring-violet-500/50"
+              placeholder="https://exemple.com/produit"
+            />
+          </div>
+          {/* ================================================== */}
 
           {/* AMOUNT + CATEGORY */}
           <div className="grid grid-cols-2 gap-4">
