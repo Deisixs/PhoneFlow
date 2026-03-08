@@ -3,7 +3,7 @@ import { X, Loader2, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
-import StockPieceSelector from '../components/StockPieceSelector';
+import StockPieceSelector from './StockPieceSelector';
 
 interface Repair {
   id: string;
@@ -79,7 +79,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         throw error;
       }
 
-      console.log('Données repair_parts chargées:', data);
+      console.log('✅ Données repair_parts chargées:', data);
 
       // Transformer les données pour matcher l'interface
       const transformedData = data?.map((item: any) => ({
@@ -92,10 +92,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         }
       })) || [];
 
+      console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
     } catch (error) {
-      console.error('Erreur lors du chargement des pièces:', error);
-      showToast('Erreur lors du chargement des pièces', 'error');
+      console.error('❌ Erreur lors du chargement des pièces:', error);
     } finally {
       setLoadingPieces(false);
     }
@@ -103,6 +103,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
   useEffect(() => {
     if (repair?.id) {
+      console.log('🔄 Chargement initial des pièces pour repair:', repair.id);
       loadUsedPieces();
     }
   }, [repair?.id]);
@@ -119,6 +120,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         .single();
       
       if (data && !error) {
+        console.log('💰 Coût mis à jour:', data.cost);
         setFormData(prev => ({ ...prev, cost: data.cost }));
       }
     } catch (error) {
@@ -165,12 +167,15 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     }
   };
 
-  const handlePiecesChange = async () => {
+  const handlePiecesChange = async (costChange?: number) => {
+    console.log('🔄 handlePiecesChange appelé, rechargement...');
     await refreshCost();
     await loadUsedPieces();
   };
 
   const handleRemovePiece = async (repairPartId: string) => {
+    if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
+
     try {
       const { error } = await supabase
         .from('repair_parts')
