@@ -8,7 +8,6 @@ import { Layout } from './components/Layout';
 import { Inventory } from './pages/Inventory';
 import { Repairs } from './pages/Repairs';
 import { Analytics } from './pages/Analytics';
-import { Scanner } from './pages/Scanner';
 import { Settings } from './pages/Settings';
 import Stock from './pages/Stock';
 import Materiel from './pages/Materiel';
@@ -86,16 +85,6 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Analytics />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/scanner"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Scanner />
             </Layout>
           </ProtectedRoute>
         }
