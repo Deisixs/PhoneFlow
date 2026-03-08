@@ -46,8 +46,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     repair_list: repair?.repair_list || '',
     cost: repair?.cost ?? 0,
     status: repair?.status || 'pending',
-    technician: repair?.technician || '',
-    photo_url: repair?.photo_url || '',
   });
   const [loading, setLoading] = useState(false);
   const [usedPieces, setUsedPieces] = useState<UsedPiece[]>([]);
@@ -56,50 +54,50 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   const { showToast } = useToast();
 
   // Charger les pièces utilisées
-const loadUsedPieces = async () => {
-  if (!repair?.id) return;
-  
-  setLoadingPieces(true);
-  try {
-    const { data, error } = await supabase
-      .from('repair_parts')
-      .select(`
-        id,
-        stock_piece_id,
-        quantity_used,
-        stock_pieces (
-          name,
-          purchase_price
-        )
-      `)
-      .eq('repair_id', repair.id);
+  const loadUsedPieces = async () => {
+    if (!repair?.id) return;
+    
+    setLoadingPieces(true);
+    try {
+      const { data, error } = await supabase
+        .from('repair_parts')
+        .select(`
+          id,
+          stock_piece_id,
+          quantity_used,
+          stock_pieces (
+            name,
+            purchase_price
+          )
+        `)
+        .eq('repair_id', repair.id);
 
-    if (error) {
-      console.error('Erreur Supabase:', error);
-      throw error;
-    }
-
-    console.log('✅ Données repair_parts chargées:', data);
-
-    // Transformer les données pour matcher l'interface
-    const transformedData = data?.map((item: any) => ({
-      id: item.id,
-      stock_piece_id: item.stock_piece_id,
-      quantity_used: item.quantity_used,
-      stock_piece: {
-        name: item.stock_pieces?.name || 'Pièce supprimée',
-        purchase_price: item.stock_pieces?.purchase_price || 0
+      if (error) {
+        console.error('Erreur Supabase:', error);
+        throw error;
       }
-    })) || [];
 
-    console.log('✅ Pièces transformées:', transformedData);
-    setUsedPieces(transformedData);
-  } catch (error) {
-    console.error('❌ Erreur lors du chargement des pièces:', error);
-  } finally {
-    setLoadingPieces(false);
-  }
-};
+      console.log('✅ Données repair_parts chargées:', data);
+
+      // Transformer les données pour matcher l'interface
+      const transformedData = data?.map((item: any) => ({
+        id: item.id,
+        stock_piece_id: item.stock_piece_id,
+        quantity_used: item.quantity_used,
+        stock_piece: {
+          name: item.stock_pieces?.name || 'Pièce supprimée',
+          purchase_price: item.stock_pieces?.purchase_price || 0
+        }
+      })) || [];
+
+      console.log('✅ Pièces transformées:', transformedData);
+      setUsedPieces(transformedData);
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des pièces:', error);
+    } finally {
+      setLoadingPieces(false);
+    }
+  };
 
   useEffect(() => {
     if (repair?.id) {
@@ -139,8 +137,8 @@ const loadUsedPieces = async () => {
         repair_list: formData.repair_list,
         status: formData.status,
         user_id: userId!,
-        technician: formData.technician || null,
-        photo_url: formData.photo_url || null,
+        technician: null,
+        photo_url: null,
         ...(repair?.id ? {} : { cost: Number(formData.cost) || 0 })
       };
 
@@ -239,11 +237,12 @@ const loadUsedPieces = async () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Details de la reparation</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Details de la reparation (Optionnel)
+            </label>
             <textarea
               value={formData.repair_list}
               onChange={(e) => setFormData({ ...formData, repair_list: e.target.value })}
-              required
               rows={4}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
               placeholder="Liste de toutes les reparations effectuees..."
@@ -288,28 +287,6 @@ const loadUsedPieces = async () => {
                 <option value="completed" className="bg-gray-900">Terminee</option>
                 <option value="failed" className="bg-gray-900">Echec</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Technicien (Optionnel)</label>
-              <input
-                type="text"
-                value={formData.technician}
-                onChange={(e) => setFormData({ ...formData, technician: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="Jean Dupont"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">URL Photo (Optionnel)</label>
-              <input
-                type="url"
-                value={formData.photo_url}
-                onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="https://..."
-              />
             </div>
 
           </div>
