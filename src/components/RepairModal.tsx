@@ -56,50 +56,50 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   const { showToast } = useToast();
 
   // Charger les pièces utilisées
-  const loadUsedPieces = async () => {
-    if (!repair?.id) return;
-    
-    setLoadingPieces(true);
-    try {
-      const { data, error } = await supabase
-        .from('repair_parts')
-        .select(`
-          id,
-          stock_piece_id,
-          quantity_used,
-          stock_pieces!inner (
-            name,
-            purchase_price
-          )
-        `)
-        .eq('repair_id', repair.id);
+const loadUsedPieces = async () => {
+  if (!repair?.id) return;
+  
+  setLoadingPieces(true);
+  try {
+    const { data, error } = await supabase
+      .from('repair_parts')
+      .select(`
+        id,
+        stock_piece_id,
+        quantity_used,
+        stock_pieces (
+          name,
+          purchase_price
+        )
+      `)
+      .eq('repair_id', repair.id);
 
-      if (error) {
-        console.error('Erreur Supabase:', error);
-        throw error;
-      }
-
-      console.log('✅ Données repair_parts chargées:', data);
-
-      // Transformer les données pour matcher l'interface
-      const transformedData = data?.map((item: any) => ({
-        id: item.id,
-        stock_piece_id: item.stock_piece_id,
-        quantity_used: item.quantity_used,
-        stock_piece: {
-          name: item.stock_pieces.name,
-          purchase_price: item.stock_pieces.purchase_price
-        }
-      })) || [];
-
-      console.log('✅ Pièces transformées:', transformedData);
-      setUsedPieces(transformedData);
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des pièces:', error);
-    } finally {
-      setLoadingPieces(false);
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      throw error;
     }
-  };
+
+    console.log('✅ Données repair_parts chargées:', data);
+
+    // Transformer les données pour matcher l'interface
+    const transformedData = data?.map((item: any) => ({
+      id: item.id,
+      stock_piece_id: item.stock_piece_id,
+      quantity_used: item.quantity_used,
+      stock_piece: {
+        name: item.stock_pieces?.name || 'Pièce supprimée',
+        purchase_price: item.stock_pieces?.purchase_price || 0
+      }
+    })) || [];
+
+    console.log('✅ Pièces transformées:', transformedData);
+    setUsedPieces(transformedData);
+  } catch (error) {
+    console.error('❌ Erreur lors du chargement des pièces:', error);
+  } finally {
+    setLoadingPieces(false);
+  }
+};
 
   useEffect(() => {
     if (repair?.id) {
