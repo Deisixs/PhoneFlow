@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
@@ -29,6 +29,16 @@ interface RepairModalProps {
   onSave: () => void;
 }
 
+interface UsedPiece {
+  id: string;
+  stock_piece_id: string;
+  quantity_used: number;
+  stock_piece: {
+    name: string;
+    purchase_price: number;
+  };
+}
+
 export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     phone_id: repair?.phone_id || '',
@@ -40,8 +50,41 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     photo_url: repair?.photo_url || '',
   });
   const [loading, setLoading] = useState(false);
+  const [usedPieces, setUsedPieces] = useState<UsedPiece[]>([]);
+  const [loadingPieces, setLoadingPieces] = useState(false);
   const { userId } = useAuth();
   const { showToast } = useToast();
+
+  // Charger les pièces utilisées
+  const loadUsedPieces = async () => {
+    if (!repair?.id) return;
+    
+    setLoadingPieces(true);
+    try {
+      const { data, error } = await supabase
+        .from('repair_parts')
+        .select(`
+          id,
+          stock_piece_id,
+          quantity_used,
+          stock_piece:stock_pieces(name, purchase_price)
+        `)
+        .eq('repair_id', repair.id);
+
+      if (error) throw error;
+      setUsedPieces(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des pièces:', error);
+    } finally {
+      setLoadingPieces(false);
+    }
+  };
+
+  useEffect(() => {
+    if (repair?.id) {
+      loadUsedPieces();
+    }
+  }, [repair?.id]);
 
   // Recharger le coût depuis la base de données
   const refreshCost = async () => {
@@ -67,8 +110,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setLoading(true);
 
     try {
-      // Si c'est une modification, ne pas inclure cost (géré automatiquement par les triggers)
-      // Si c'est une création, inclure cost (manuel)
       const repairData = {
         phone_id: formData.phone_id,
         description: formData.description,
@@ -77,7 +118,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         user_id: userId!,
         technician: formData.technician || null,
         photo_url: formData.photo_url || null,
-        // N'inclure cost QUE lors de la création
         ...(repair?.id ? {} : { cost: Number(formData.cost) || 0 })
       };
 
@@ -105,8 +145,24 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   };
 
   const handlePiecesChange = async () => {
-    // Rafraîchir le coût depuis la base de données après modification des pièces
     await refreshCost();
+    await loadUsedPieces();
+  };
+
+  const handleRemovePiece = async (repairPartId: string) => {
+    try {
+      const { error } = await supabase
+        .from('repair_parts')
+        .delete()
+        .eq('id', repairPartId);
+
+      if (error) throw error;
+      
+      showToast('Piece retiree avec succes', 'success');
+      await handlePiecesChange();
+    } catch (error: any) {
+      showToast(error.message || 'Erreur lors de la suppression', 'error');
+    }
   };
 
   return (
@@ -238,6 +294,61 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 <span className="w-2 h-2 bg-violet-400 rounded-full"></span>
                 Pieces du stock
               </h3>
+
+              {/* Historique des pièces utilisées */}
+              {loadingPieces ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+                </div>
+              ) : usedPieces.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {usedPieces.map((piece) => (
+                    <div 
+                      key={piece.id}
+                      className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                          <Package className="w-4 h-4 text-violet-400" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-white">
+                            {piece.stock_piece.name}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Quantité: {piece.quantity_used} × {piece.stock_piece.purchase_price.toFixed(2)}€ = {(piece.quantity_used * piece.stock_piece.purchase_price).toFixed(2)}€
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePiece(piece.id)}
+                        className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Retirer cette pièce"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <div className="flex items-center justify-between p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg mt-3">
+                    <span className="text-sm font-semibold text-violet-300">Total des pièces</span>
+                    <span className="text-lg font-bold text-violet-400">
+                      {usedPieces.reduce((sum, piece) => 
+                        sum + (piece.quantity_used * piece.stock_piece.purchase_price), 0
+                      ).toFixed(2)}€
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-white/5 border border-white/10 rounded-lg mb-4">
+                  <p className="text-sm text-gray-400 text-center">
+                    Aucune pièce du stock utilisée pour cette réparation
+                  </p>
+                </div>
+              )}
+
+              {/* Sélecteur pour ajouter des pièces */}
               <StockPieceSelector 
                 repairId={repair.id}
                 onPiecesChange={handlePiecesChange}
