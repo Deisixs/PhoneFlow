@@ -36,7 +36,43 @@ interface PhoneModalProps {
 }
 
 const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB'];
-const CONDITION_OPTIONS = ['Neuf', 'Excellent', 'Très bon', 'Moyen', 'Mauvais'];
+
+const IPHONE_MODELS = [
+  // iPhone 16 (2024)
+  'iPhone 16 Pro Max',
+  'iPhone 16 Pro',
+  'iPhone 16 Plus',
+  'iPhone 16',
+  
+  // iPhone 15 (2023)
+  'iPhone 15 Pro Max',
+  'iPhone 15 Pro',
+  'iPhone 15 Plus',
+  'iPhone 15',
+  
+  // iPhone 14 (2022)
+  'iPhone 14 Pro Max',
+  'iPhone 14 Pro',
+  'iPhone 14 Plus',
+  'iPhone 14',
+  
+  // iPhone 13 (2021)
+  'iPhone 13 Pro Max',
+  'iPhone 13 Pro',
+  'iPhone 13',
+  'iPhone 13 mini',
+  
+  // iPhone 12 (2020)
+  'iPhone 12 Pro Max',
+  'iPhone 12 Pro',
+  'iPhone 12',
+  'iPhone 12 mini',
+  
+  // iPhone 11 (2019)
+  'iPhone 11 Pro Max',
+  'iPhone 11 Pro',
+  'iPhone 11',
+];
 
 // ---- GESTION VIRGULE / POINT ---- //
 const parsePriceInput = (val: string) => {
@@ -53,14 +89,15 @@ const formatPriceDisplay = (n: number | null) => {
 // -------------------------------- //
 
 export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose, onSave }) => {
+  const today = new Date().toISOString().split('T')[0];
+  
   const [formData, setFormData] = useState({
     model: phone?.model || '',
     storage: phone?.storage || '128GB',
     color: phone?.color || '',
     imei: phone?.imei || '',
-    condition: phone?.condition || 'Excellent',
     purchase_price: phone?.purchase_price || 0,
-    purchase_date: phone?.purchase_date || new Date().toISOString().split('T')[0],
+    purchase_date: phone?.purchase_date || today,
     purchase_account_id: phone?.purchase_account_id || null,
     notes: phone?.notes || '',
     sale_price: phone?.sale_price || null,
@@ -69,8 +106,21 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   });
 
   const [loading, setLoading] = useState(false);
+  const [showModelList, setShowModelList] = useState(false);
+  const [modelSearch, setModelSearch] = useState(phone?.model || '');
   const { userId } = useAuth();
   const { showToast } = useToast();
+
+  // Filtrer les modèles selon la recherche
+  const filteredModels = IPHONE_MODELS.filter(model =>
+    model.toLowerCase().includes(modelSearch.toLowerCase())
+  );
+
+  const handleModelSelect = (model: string) => {
+    setFormData({ ...formData, model });
+    setModelSearch(model);
+    setShowModelList(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +130,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
       const phoneData = {
         ...formData,
         user_id: userId!,
+        condition: 'Non spécifié', // Valeur par défaut car champ supprimé
         qr_code: phone?.id ? (phone.qr_code || null) : generateQRCode('', formData.imei),
       };
 
@@ -100,7 +151,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de l’enregistrement', 'error');
+      showToast(error.message || 'Erreur lors de l'enregistrement', 'error');
     } finally {
       setLoading(false);
     }
@@ -122,17 +173,38 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Modèle */}
-            <div>
+            {/* Modèle avec auto-complétion */}
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-300 mb-2">Modèle</label>
               <input
                 type="text"
-                value={formData.model}
-                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                value={modelSearch}
+                onChange={(e) => {
+                  setModelSearch(e.target.value);
+                  setFormData({ ...formData, model: e.target.value });
+                  setShowModelList(true);
+                }}
+                onFocus={() => setShowModelList(true)}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
-                placeholder="iPhone 14 Pro"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+                placeholder="Rechercher un modèle..."
+                autoComplete="off"
               />
+              
+              {/* Liste déroulante des modèles */}
+              {showModelList && filteredModels.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto bg-gray-900 border border-white/10 rounded-xl shadow-2xl">
+                  {filteredModels.map((model, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleModelSelect(model)}
+                      className="px-4 py-2.5 hover:bg-violet-500/20 cursor-pointer text-white transition-colors border-b border-white/5 last:border-b-0"
+                    >
+                      {model}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Stockage */}
@@ -158,7 +230,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
                 placeholder="Noir sidéral"
               />
             </div>
@@ -171,24 +243,9 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 value={formData.imei}
                 onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
                 placeholder="123456789012345"
               />
-            </div>
-
-            {/* Condition */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">État</label>
-              <select
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
-              >
-                {CONDITION_OPTIONS.map((c) => (
-                  <option key={c} value={c} className="bg-gray-900">{c}</option>
-                ))}
-              </select>
             </div>
 
             {/* Prix d'achat */}
@@ -203,7 +260,8 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   setFormData({ ...formData, purchase_price: parsed === "" ? 0 : parsed });
                 }}
                 required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+                placeholder="999,00"
               />
             </div>
 
@@ -220,7 +278,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
             </div>
 
             {/* Compte d'achat */}
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-300 mb-2">Compte d'achat</label>
               <select
                 value={formData.purchase_account_id || ''}
@@ -243,7 +301,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none"
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
               placeholder="Notes supplémentaires..."
             />
           </div>
@@ -258,7 +316,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   setFormData({
                     ...formData,
                     is_sold: e.target.checked,
-                    sale_date: e.target.checked ? new Date().toISOString().split('T')[0] : null,
+                    sale_date: e.target.checked ? today : null,
                   })
                 }
                 className="w-5 h-5 bg-white/5 border-white/10 rounded"
@@ -282,7 +340,8 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     const parsed = parsePriceInput(e.target.value);
                     setFormData({ ...formData, sale_price: parsed === "" ? null : parsed });
                   }}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+                  placeholder="1199,00"
                 />
               </div>
 
