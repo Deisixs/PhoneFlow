@@ -26,7 +26,6 @@ const navItems = [
   { path: '/stock', icon: Package, label: 'Stock Pièces' },
   { path: '/materiel', icon: Hammer, label: 'Matériel' },
   { path: '/analytics', icon: BarChart3, label: 'Analyses' },
-  { path: '/scanner', icon: QrCode, label: 'Scanner' },
   { path: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
