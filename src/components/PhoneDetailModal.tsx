@@ -239,7 +239,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                 <p className="text-white font-semibold">{phone.color}</p>
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">IMEI</p>
                 <p className="text-white font-mono text-sm">{phone.imei}</p>
               </div>
@@ -254,7 +254,7 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                 </div>
               )}
 
-              <div className="col-span-2">
+              <div className={phone.battery_health ? "md:col-span-2" : "md:col-span-3"}>
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Date d'achat</p>
                 <p className="text-white font-semibold flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-400" />
