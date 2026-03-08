@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download } from 'lucide-react';
+import { X, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
-import { QRCodeSVG } from 'qrcode.react';
 
 interface Phone {
   id: string;
@@ -32,6 +31,16 @@ interface Repair {
   completed_at: string | null;
 }
 
+interface RepairPart {
+  id: string;
+  repair_id: string;
+  quantity_used: number;
+  stock_piece: {
+    name: string;
+    purchase_price: number;
+  };
+}
+
 interface PhoneDetailModalProps {
   phone: Phone;
   onClose: () => void;
@@ -40,6 +49,7 @@ interface PhoneDetailModalProps {
 
 export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClose }) => {
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [repairParts, setRepairParts] = useState<Record<string, RepairPart[]>>({});
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -57,10 +67,55 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
 
       if (error) throw error;
       setRepairs(data || []);
+
+      // Charger les pièces pour chaque réparation
+      if (data && data.length > 0) {
+        await loadRepairParts(data.map(r => r.id));
+      }
     } catch (error) {
       showToast("Échec du chargement des réparations", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRepairParts = async (repairIds: string[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('repair_parts')
+        .select(`
+          id,
+          repair_id,
+          quantity_used,
+          stock_pieces (
+            name,
+            purchase_price
+          )
+        `)
+        .in('repair_id', repairIds);
+
+      if (error) throw error;
+
+      // Grouper les pièces par repair_id
+      const grouped: Record<string, RepairPart[]> = {};
+      data?.forEach((part: any) => {
+        if (!grouped[part.repair_id]) {
+          grouped[part.repair_id] = [];
+        }
+        grouped[part.repair_id].push({
+          id: part.id,
+          repair_id: part.repair_id,
+          quantity_used: part.quantity_used,
+          stock_piece: {
+            name: part.stock_pieces?.name || 'Pièce supprimée',
+            purchase_price: part.stock_pieces?.purchase_price || 0
+          }
+        });
+      });
+
+      setRepairParts(grouped);
+    } catch (error) {
+      console.error('Erreur chargement pièces:', error);
     }
   };
 
@@ -100,34 +155,6 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
             EN STOCK
           </span>
         );
-    }
-  };
-
-  // -----------------------------
-  // QR CODE DOWNLOAD
-  // -----------------------------
-  const downloadQR = () => {
-    const svg = document.getElementById('qr-code') as unknown as SVGElement;
-    if (svg) {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      canvas.width = 180;
-      canvas.height = 180;
-
-      img.onload = () => {
-        ctx?.drawImage(img, 0, 0);
-        const url = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `${phone.model}-${phone.imei}-QR.png`;
-        link.href = url;
-        link.click();
-        showToast("QR Code téléchargé", "success");
-      };
-
-      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
     }
   };
 
@@ -174,15 +201,13 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
 
         <div className="p-6 space-y-6">
 
-          {/* INFOS GÉNÉRALES */}
+          {/* INFOS GÉNÉRALES + SECTION VENDU */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
 
               <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-white">Informations générales</h3>
-
-                  {/* BADGE STATUT */}
                   {getStatusBadge()}
                 </div>
 
@@ -216,12 +241,12 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Prix d’achat</p>
+                    <p className="text-sm text-gray-400 mb-1">Prix d'achat</p>
                     <p className="text-white font-semibold text-lg">€{phone.purchase_price.toFixed(2)}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">Date d’achat</p>
+                    <p className="text-sm text-gray-400 mb-1">Date d'achat</p>
                     <p className="text-white font-semibold">
                       {new Date(phone.purchase_date).toLocaleDateString()}
                     </p>
@@ -259,36 +284,22 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
               )}
             </div>
 
-            {/* QR CODE */}
+            {/* SECTION VENDU (remplace le QR Code) */}
             <div className="space-y-6">
-              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4 text-center">Code QR</h3>
-
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-white rounded-xl">
-                    <QRCodeSVG id="qr-code" value={phone.qr_code || phone.imei} size={180} level="H" />
-                  </div>
-                </div>
-
-                <button
-                  onClick={downloadQR}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl"
-                >
-                  <Download className="w-4 h-4" />
-                  Télécharger le QR
-                </button>
-              </div>
-
-              {/* SECTION VENDU */}
               {phone.is_sold && (
                 <div className="backdrop-blur-xl bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                    <span className="text-2xl">✓</span>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <span className="text-4xl">✓</span>
                   </div>
-                  <p className="text-emerald-400 font-bold text-lg">VENDU</p>
+                  <p className="text-emerald-400 font-bold text-xl mb-2">VENDU</p>
                   {phone.sale_date && (
-                    <p className="text-emerald-400/70 text-sm mt-1">
+                    <p className="text-emerald-400/70 text-sm">
                       {new Date(phone.sale_date).toLocaleDateString()}
+                    </p>
+                  )}
+                  {phone.sale_price && (
+                    <p className="text-emerald-400 font-bold text-2xl mt-4">
+                      €{phone.sale_price.toFixed(2)}
                     </p>
                   )}
                 </div>
@@ -327,7 +338,27 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                    {/* Pièces utilisées dans cette réparation */}
+                    {repairParts[repair.id] && repairParts[repair.id].length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-2 flex items-center gap-2">
+                          <Package size={14} />
+                          Pièces utilisées
+                        </p>
+                        <div className="space-y-1">
+                          {repairParts[repair.id].map((part) => (
+                            <div key={part.id} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-300">{part.stock_piece.name}</span>
+                              <span className="text-gray-400">
+                                Qté: {part.quantity_used} × {part.stock_piece.purchase_price.toFixed(2)}€ = {(part.quantity_used * part.stock_piece.purchase_price).toFixed(2)}€
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-white/10 mt-3">
                       <div className="flex items-center gap-4 text-sm">
                         <span className="text-gray-400">Coût :</span>
                         <span className="text-orange-400 font-semibold">€{repair.cost.toFixed(2)}</span>
