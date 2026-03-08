@@ -38,6 +38,23 @@ interface PhoneModalProps {
 
 const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB'];
 
+const COLOR_OPTIONS = [
+  'Noir',
+  'Blanc',
+  'Rouge',
+  'Vert',
+  'Bleu',
+  'Gris',
+  'Or',
+  'Argent',
+  'Rose',
+  'Violet',
+  'Noir sidéral',
+  'Bleu pacifique',
+  'Minuit',
+  'Lumière stellaire',
+];
+
 const IPHONE_MODELS = [
   // iPhone 16 (2024)
   'iPhone 16 Pro Max',
@@ -109,7 +126,11 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
   const [loading, setLoading] = useState(false);
   const [showModelList, setShowModelList] = useState(false);
+  const [showStorageList, setShowStorageList] = useState(false);
+  const [showColorList, setShowColorList] = useState(false);
+  const [showAccountList, setShowAccountList] = useState(false);
   const [modelSearch, setModelSearch] = useState(phone?.model || '');
+  const [colorSearch, setColorSearch] = useState(phone?.color || '');
   const { userId } = useAuth();
   const { showToast } = useToast();
 
@@ -118,10 +139,31 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     model.toLowerCase().includes(modelSearch.toLowerCase())
   );
 
+  // Filtrer les couleurs selon la recherche
+  const filteredColors = COLOR_OPTIONS.filter(color =>
+    color.toLowerCase().includes(colorSearch.toLowerCase())
+  );
+
   const handleModelSelect = (model: string) => {
     setFormData({ ...formData, model });
     setModelSearch(model);
     setShowModelList(false);
+  };
+
+  const handleStorageSelect = (storage: string) => {
+    setFormData({ ...formData, storage });
+    setShowStorageList(false);
+  };
+
+  const handleColorSelect = (color: string) => {
+    setFormData({ ...formData, color });
+    setColorSearch(color);
+    setShowColorList(false);
+  };
+
+  const handleAccountSelect = (accountId: string) => {
+    setFormData({ ...formData, purchase_account_id: accountId || null });
+    setShowAccountList(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -214,7 +256,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     autoComplete="off"
                   />
                   
-                  {/* Liste déroulante */}
+                  {/* Liste déroulante modèles */}
                   {showModelList && filteredModels.length > 0 && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       {filteredModels.map((model, index) => (
@@ -230,36 +272,73 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   )}
                 </div>
 
-                {/* Stockage */}
-                <div>
+                {/* Stockage avec dropdown */}
+                <div className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Stockage
                   </label>
-                  <select
-                    value={formData.storage}
-                    onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  <button
+                    type="button"
+                    onClick={() => setShowStorageList(!showStorageList)}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all text-left"
                   >
-                    {STORAGE_OPTIONS.map((s) => (
-                      <option key={s} value={s} className="bg-gray-900">{s}</option>
-                    ))}
-                  </select>
+                    {formData.storage}
+                  </button>
+                  
+                  {/* Liste déroulante stockage */}
+                  {showStorageList && (
+                    <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                      {STORAGE_OPTIONS.map((storage, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleStorageSelect(storage)}
+                          className={`px-4 py-3 cursor-pointer transition-all border-b border-violet-500/10 last:border-b-0 ${
+                            formData.storage === storage
+                              ? 'bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-white font-semibold'
+                              : 'text-white hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20'
+                          }`}
+                        >
+                          {storage}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Couleur */}
-                <div>
+                {/* Couleur avec auto-complétion */}
+                <div className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Couleur
                   </label>
                   <input
                     type="text"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    value={colorSearch}
+                    onChange={(e) => {
+                      setColorSearch(e.target.value);
+                      setFormData({ ...formData, color: e.target.value });
+                      setShowColorList(true);
+                    }}
+                    onFocus={() => setShowColorList(true)}
                     required
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
-                    placeholder="Noir sidéral"
+                    placeholder="Rechercher une couleur..."
+                    autoComplete="off"
                   />
+                  
+                  {/* Liste déroulante couleurs */}
+                  {showColorList && filteredColors.length > 0 && (
+                    <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                      {filteredColors.map((color, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleColorSelect(color)}
+                          className="px-4 py-3 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20 cursor-pointer text-white transition-all border-b border-violet-500/10 last:border-b-0"
+                        >
+                          {color}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* IMEI */}
@@ -332,22 +411,50 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Compte d'achat */}
-                <div>
+                {/* Compte d'achat avec dropdown */}
+                <div className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Package className="w-4 h-4" />
                     Compte d'achat
                   </label>
-                  <select
-                    value={formData.purchase_account_id || ''}
-                    onChange={(e) => setFormData({ ...formData, purchase_account_id: e.target.value || null })}
-                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  <button
+                    type="button"
+                    onClick={() => setShowAccountList(!showAccountList)}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all text-left"
                   >
-                    <option value="" className="bg-gray-900">Aucun / Non spécifié</option>
-                    {accounts.map((a) => (
-                      <option key={a.id} value={a.id} className="bg-gray-900">{a.name}</option>
-                    ))}
-                  </select>
+                    {formData.purchase_account_id 
+                      ? accounts.find(a => a.id === formData.purchase_account_id)?.name 
+                      : 'Aucun / Non spécifié'}
+                  </button>
+                  
+                  {/* Liste déroulante comptes */}
+                  {showAccountList && (
+                    <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                      <div
+                        onClick={() => handleAccountSelect('')}
+                        className={`px-4 py-3 cursor-pointer transition-all border-b border-violet-500/10 ${
+                          !formData.purchase_account_id
+                            ? 'bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-white font-semibold'
+                            : 'text-white hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20'
+                        }`}
+                      >
+                        Aucun / Non spécifié
+                      </div>
+                      {accounts.map((account) => (
+                        <div
+                          key={account.id}
+                          onClick={() => handleAccountSelect(account.id)}
+                          className={`px-4 py-3 cursor-pointer transition-all border-b border-violet-500/10 last:border-b-0 ${
+                            formData.purchase_account_id === account.id
+                              ? 'bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-white font-semibold'
+                              : 'text-white hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20'
+                          }`}
+                        >
+                          {account.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
               </div>
