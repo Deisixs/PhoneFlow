@@ -20,6 +20,7 @@ interface Phone {
   sale_date: string | null;
   is_sold: boolean;
   qr_code: string | null;
+  battery_health: number | null;
 }
 
 interface PurchaseAccount {
@@ -98,6 +99,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     imei: phone?.imei || '',
     purchase_price: phone?.purchase_price || 0,
     purchase_date: phone?.purchase_date || today,
+    battery_health: phone?.battery_health || null,
     purchase_account_id: phone?.purchase_account_id || null,
     notes: phone?.notes || '',
     sale_price: phone?.sale_price || null,
@@ -130,7 +132,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
       const phoneData = {
         ...formData,
         user_id: userId!,
-        condition: 'Non spécifié', // Valeur par défaut car champ supprimé
+        condition: 'Non spécifié',
         qr_code: phone?.id ? (phone.qr_code || null) : generateQRCode('', formData.imei),
       };
 
@@ -277,8 +279,27 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               />
             </div>
 
+            {/* Santé de la batterie */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Santé de la batterie (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.battery_health || ''}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  battery_health: e.target.value ? parseInt(e.target.value) : null 
+                })}
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
+                placeholder="100"
+              />
+            </div>
+
             {/* Compte d'achat */}
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Compte d'achat</label>
               <select
                 value={formData.purchase_account_id || ''}
