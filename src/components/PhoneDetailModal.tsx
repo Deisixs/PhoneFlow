@@ -131,21 +131,21 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     switch (status) {
       case "sold":
         return (
-          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full uppercase">
+          <div className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold rounded-full shadow-lg shadow-emerald-500/50 uppercase tracking-wider">
             Vendu
-          </span>
+          </div>
         );
       case "repair":
         return (
-          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full uppercase">
+          <div className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg shadow-yellow-500/50 uppercase tracking-wider">
             En réparation
-          </span>
+          </div>
         );
       default:
         return (
-          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold rounded-full uppercase">
+          <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/50 uppercase tracking-wider">
             Disponible
-          </span>
+          </div>
         );
     }
   };
@@ -153,13 +153,13 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        return 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-400 border border-emerald-500/30';
       case 'in_progress':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        return 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border border-blue-500/30';
       case 'failed':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
+        return 'bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-400 border border-red-500/30';
       default:
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+        return 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-500/30';
     }
   };
 
@@ -187,225 +187,244 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
+        
+        {/* Background gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/10 pointer-events-none"></div>
+        
+        {/* Content */}
+        <div className="relative bg-gray-900/95 backdrop-blur-xl border border-violet-500/20 rounded-3xl overflow-hidden">
 
-        {/* HEADER */}
-        <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-              <Smartphone className="w-5 h-5 text-white" />
+          {/* HEADER avec gradient */}
+          <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-6 py-5 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                <Smartphone className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {phone.model}
+                </h2>
+                <p className="text-xs text-white/70 font-mono mt-0.5">{phone.imei}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                {phone.model}
-              </h2>
-              <p className="text-xs text-gray-400 font-mono">{phone.imei}</p>
+            <div className="flex items-center gap-3">
+              {getStatusBadge()}
+              <button 
+                onClick={onClose} 
+                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-sm border border-white/20"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {getStatusBadge()}
-            <button 
-              onClick={onClose} 
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
-        <div className="p-6 space-y-6">
+          {/* Scrollable content */}
+          <div className="overflow-y-auto max-h-[calc(90vh-5rem)] p-6 space-y-6">
 
-          {/* 1. INFORMATIONS DU TÉLÉPHONE */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-5">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-violet-400" />
-              Informations du téléphone
-            </h3>
+            {/* 1. INFORMATIONS DU TÉLÉPHONE */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                  <Smartphone className="w-4 h-4 text-white" />
+                </div>
+                Informations du téléphone
+              </h3>
 
-            <div className="grid grid-cols-3 gap-4">
-              {/* Ligne 1 */}
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Modèle</p>
-                <p className="text-white font-semibold">{phone.model}</p>
-              </div>
+              <div className="grid grid-cols-3 gap-5">
+                {/* Ligne 1 */}
+                <div className="space-y-2">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">Modèle</p>
+                  <p className="text-white font-bold text-base">{phone.model}</p>
+                </div>
 
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Stockage</p>
-                <p className="text-white font-semibold">{phone.storage}</p>
-              </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">Stockage</p>
+                  <p className="text-white font-bold text-base">{phone.storage}</p>
+                </div>
 
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Couleur</p>
-                <p className="text-white font-semibold">{phone.color}</p>
-              </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">Couleur</p>
+                  <p className="text-white font-bold text-base">{phone.color}</p>
+                </div>
 
-              {/* Ligne 2 */}
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">IMEI</p>
-                <p className="text-white font-mono text-sm">{phone.imei}</p>
-              </div>
+                {/* Ligne 2 */}
+                <div className="space-y-2">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">IMEI</p>
+                  <p className="text-white font-mono text-sm font-semibold">{phone.imei}</p>
+                </div>
 
-              {phone.battery_health ? (
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Batterie</p>
-                  <p className={`font-bold flex items-center gap-1 ${getBatteryColor(phone.battery_health)}`}>
-                    <Battery className="w-4 h-4" />
-                    {phone.battery_health}%
+                {phone.battery_health ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">Batterie</p>
+                    <p className={`font-bold text-lg flex items-center gap-2 ${getBatteryColor(phone.battery_health)}`}>
+                      <Battery className="w-5 h-5" />
+                      {phone.battery_health}%
+                    </p>
+                  </div>
+                ) : (
+                  <div></div>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold">Date d'achat</p>
+                  <p className="text-white font-semibold text-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-violet-400" />
+                    {new Date(phone.purchase_date).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
                   </p>
                 </div>
-              ) : (
-                <div></div>
-              )}
-
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Date d'achat</p>
-                <p className="text-white font-semibold flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  {new Date(phone.purchase_date).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </p>
               </div>
+
+              {phone.notes && (
+                <div className="mt-6 pt-6 border-t border-violet-500/20">
+                  <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold mb-3">Notes</p>
+                  <p className="text-gray-300 text-sm leading-relaxed bg-gray-900/50 p-4 rounded-xl border border-violet-500/10">
+                    {phone.notes}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {phone.notes && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Notes</p>
-                <p className="text-gray-300 text-sm leading-relaxed">{phone.notes}</p>
-              </div>
-            )}
-          </div>
-
-          {/* 2. HISTORIQUE DES RÉPARATIONS */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-5">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-violet-400" />
-              Historique des réparations
-            </h3>
-
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : repairs.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
-                  <Wrench className="w-6 h-6 text-gray-500" />
+            {/* 2. HISTORIQUE DES RÉPARATIONS */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                  <Wrench className="w-4 h-4 text-white" />
                 </div>
-                <p className="text-gray-400 text-sm">Aucune réparation</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {repairs.map((repair) => (
-                  <div
-                    key={repair.id}
-                    className="bg-white/5 border border-white/10 rounded-lg p-4"
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <h4 className="text-white font-semibold mb-1">{repair.description}</h4>
-                        {repair.repair_list && (
-                          <p className="text-sm text-gray-400">{repair.repair_list}</p>
-                        )}
+                Historique des réparations
+              </h3>
+
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : repairs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+                    <Wrench className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <p className="text-gray-400 font-medium">Aucune réparation</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {repairs.map((repair) => (
+                    <div
+                      key={repair.id}
+                      className="bg-gradient-to-br from-gray-900/60 to-gray-900/30 border border-violet-500/20 rounded-xl p-5 hover:border-violet-500/40 transition-all"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="text-white font-bold text-base mb-1">{repair.description}</h4>
+                          {repair.repair_list && (
+                            <p className="text-sm text-gray-400">{repair.repair_list}</p>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${getStatusColor(repair.status)}`}>
+                          {translateStatus(repair.status)}
+                        </span>
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${getStatusColor(repair.status)}`}>
-                        {translateStatus(repair.status)}
+
+                      {/* Pièces */}
+                      {repairParts[repair.id] && repairParts[repair.id].length > 0 && (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/30 rounded-lg">
+                          <p className="text-xs text-violet-300 uppercase tracking-wide font-bold mb-3 flex items-center gap-2">
+                            <Package className="w-3.5 h-3.5" />
+                            Pièces utilisées
+                          </p>
+                          <div className="space-y-2">
+                            {repairParts[repair.id].map((part) => (
+                              <div key={part.id} className="flex items-center justify-between">
+                                <span className="text-white font-medium">{part.stock_piece.name}</span>
+                                <span className="text-violet-300 font-mono text-sm font-semibold">
+                                  {part.quantity_used} × {part.stock_piece.purchase_price.toFixed(2)}€
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-4 mt-4 border-t border-violet-500/20">
+                        <div className="flex items-center gap-5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 uppercase tracking-wide">Coût</span>
+                            <span className="text-orange-400 font-bold text-lg">{repair.cost.toFixed(2)}€</span>
+                          </div>
+                          {repair.technician && (
+                            <span className="text-gray-400 text-sm">• {repair.technician}</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">
+                          {new Date(repair.created_at).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. RÉSUMÉ FINANCIER */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-white" />
+                </div>
+                Résumé financier
+              </h3>
+
+              <div className="space-y-4">
+                {/* Prix d'achat */}
+                <div className="flex items-center justify-between py-3 px-4 bg-gray-900/50 rounded-xl border border-violet-500/10">
+                  <span className="text-gray-300 font-medium">Prix d'achat</span>
+                  <span className="text-white font-bold text-xl">{phone.purchase_price.toFixed(2)}€</span>
+                </div>
+
+                {/* Total réparations */}
+                <div className="flex items-center justify-between py-3 px-4 bg-gray-900/50 rounded-xl border border-violet-500/10">
+                  <span className="text-gray-300 font-medium">Total réparations</span>
+                  <span className="text-orange-400 font-bold text-xl">{totalRepairCost.toFixed(2)}€</span>
+                </div>
+
+                {/* Si vendu */}
+                {phone.is_sold && phone.sale_price && (
+                  <>
+                    <div className="flex items-center justify-between py-3 px-4 bg-gray-900/50 rounded-xl border border-violet-500/10">
+                      <span className="text-gray-300 font-medium">Prix de vente</span>
+                      <span className="text-emerald-400 font-bold text-xl">{phone.sale_price.toFixed(2)}€</span>
+                    </div>
+
+                    <div className="flex items-center justify-between py-4 px-5 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 rounded-xl border-2 border-violet-500/40 mt-2">
+                      <span className="text-white font-bold text-lg">Bénéfice net</span>
+                      <span className={`font-bold text-3xl ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)}€
                       </span>
                     </div>
 
-                    {/* Pièces */}
-                    {repairParts[repair.id] && repairParts[repair.id].length > 0 && (
-                      <div className="mt-3 p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
-                        <p className="text-xs text-violet-300 uppercase tracking-wide font-semibold mb-2 flex items-center gap-2">
-                          <Package size={12} />
-                          Pièces utilisées
+                    {phone.sale_date && (
+                      <div className="pt-3 text-center">
+                        <p className="text-xs text-gray-400">
+                          Vendu le {new Date(phone.sale_date).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
                         </p>
-                        <div className="space-y-1">
-                          {repairParts[repair.id].map((part) => (
-                            <div key={part.id} className="flex items-center justify-between text-sm">
-                              <span className="text-white">{part.stock_piece.name}</span>
-                              <span className="text-violet-300 font-mono text-xs">
-                                {part.quantity_used} × {part.stock_piece.purchase_price.toFixed(2)}€
-                              </span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/10">
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-orange-400 font-bold">{repair.cost.toFixed(2)}€</span>
-                        {repair.technician && (
-                          <span className="text-gray-400 text-xs">• {repair.technician}</span>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(repair.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  </>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* 3. RÉSUMÉ FINANCIER */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-5">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-violet-400" />
-              Résumé financier
-            </h3>
-
-            <div className="space-y-3">
-              {/* Prix d'achat */}
-              <div className="flex items-center justify-between py-2">
-                <span className="text-gray-400">Prix d'achat</span>
-                <span className="text-white font-bold text-lg">{phone.purchase_price.toFixed(2)}€</span>
-              </div>
-
-              {/* Total réparations */}
-              <div className="flex items-center justify-between py-2 border-t border-white/10">
-                <span className="text-gray-400">Total réparations</span>
-                <span className="text-orange-400 font-bold text-lg">{totalRepairCost.toFixed(2)}€</span>
-              </div>
-
-              {/* Si vendu */}
-              {phone.is_sold && phone.sale_price && (
-                <>
-                  <div className="flex items-center justify-between py-2 border-t border-white/10">
-                    <span className="text-gray-400">Prix de vente</span>
-                    <span className="text-emerald-400 font-bold text-lg">{phone.sale_price.toFixed(2)}€</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-3 border-t-2 border-white/20">
-                    <span className="text-white font-bold">Bénéfice net</span>
-                    <span className={`font-bold text-2xl ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)}€
-                    </span>
-                  </div>
-
-                  {phone.sale_date && (
-                    <div className="pt-2 border-t border-white/10">
-                      <p className="text-xs text-gray-400 text-center">
-                        Vendu le {new Date(phone.sale_date).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>
