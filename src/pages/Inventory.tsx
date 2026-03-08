@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Filter, Eye, Edit, Trash2, Copy, ExternalLink, Archive
+  Plus, Search, Filter, Eye, Edit, Trash2, Archive, Smartphone, DollarSign, Calendar
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,9 +58,6 @@ export const Inventory: React.FC = () => {
   const { userId } = useAuth();
   const { showToast } = useToast();
 
-  // ---------------------
-  // LOAD DATA
-  // ---------------------
   useEffect(() => {
     if (userId) {
       loadPhones();
@@ -109,9 +106,6 @@ export const Inventory: React.FC = () => {
     } catch {}
   };
 
-  // ---------------------
-  // PHONE STATUS LOGIC
-  // ---------------------
   const getPhoneStatus = (phone: Phone) => {
     if (phone.is_sold) return 'sold';
 
@@ -127,39 +121,34 @@ export const Inventory: React.FC = () => {
     switch (status) {
       case 'sold':
         return (
-          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full">
-            VENDU
-          </span>
+          <div className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold rounded-full shadow-lg shadow-emerald-500/50 uppercase tracking-wider">
+            Vendu
+          </div>
         );
       case 'repair':
         return (
-          <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full">
-            EN RÉPARATION
-          </span>
+          <div className="px-4 py-1.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg shadow-yellow-500/50 uppercase tracking-wider">
+            En réparation
+          </div>
         );
       default:
         return (
-          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full">
-            EN STOCK
-          </span>
+          <div className="px-4 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold rounded-full shadow-lg shadow-blue-500/50 uppercase tracking-wider">
+            En stock
+          </div>
         );
     }
   };
 
-  // ---------------------
-  // ARCHIVAGE
-  // ---------------------
   const handleArchiveToggle = async (phone: Phone) => {
-    // Si le téléphone n'est pas archivé et qu'on veut l'archiver
     if (!phone.archived && !phone.is_sold) {
-      showToast('Impossible d\'archiver : le téléphone n\'est pas vendu', 'error');
+      showToast("Impossible d'archiver : le téléphone n'est pas vendu", 'error');
       return;
     }
 
     try {
       const newArchivedState = !phone.archived;
 
-      // Archiver/désarchiver le téléphone
       const { error: phoneError } = await supabase
         .from('phones')
         .update({ archived: newArchivedState })
@@ -167,7 +156,6 @@ export const Inventory: React.FC = () => {
 
       if (phoneError) throw phoneError;
 
-      // Archiver/désarchiver toutes les réparations associées
       const { error: repairError } = await supabase
         .from('repairs')
         .update({ archived: newArchivedState })
@@ -184,13 +172,10 @@ export const Inventory: React.FC = () => {
       setSelectedPhone(null);
       setShowDetailModal(false);
     } catch {
-      showToast('Erreur lors de l\'archivage', 'error');
+      showToast("Erreur lors de l'archivage", 'error');
     }
   };
 
-  // ---------------------
-  // DELETE
-  // ---------------------
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce téléphone ?')) return;
 
@@ -206,9 +191,6 @@ export const Inventory: React.FC = () => {
     }
   };
 
-  // ---------------------
-  // FILTERING
-  // ---------------------
   const filteredPhones = phones
     .filter((phone) => (showArchived ? phone.archived : !phone.archived))
     .filter((phone) => {
@@ -228,10 +210,6 @@ export const Inventory: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
 
-  // ---------------------
-  // UI
-  // ---------------------
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -245,10 +223,13 @@ export const Inventory: React.FC = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">
             Inventaire
           </h1>
-          <p className="text-gray-400 mt-1">Gérez votre collection de smartphones</p>
+          <p className="text-gray-400 mt-2 flex items-center gap-2">
+            <Smartphone className="w-4 h-4" />
+            Gérez votre collection de smartphones
+          </p>
         </div>
 
         <button
@@ -256,7 +237,7 @@ export const Inventory: React.FC = () => {
             setSelectedPhone(null);
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-semibold hover:scale-105 transition"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-bold hover:scale-105 transition shadow-lg shadow-violet-500/50 text-white"
         >
           <Plus className="w-5 h-5" />
           Ajouter un téléphone
@@ -266,18 +247,22 @@ export const Inventory: React.FC = () => {
       {/* SEARCH + FILTERS */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-violet-400" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher..."
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white"
+            placeholder="Rechercher par modèle, IMEI, couleur..."
+            className="w-full pl-12 pr-4 py-3 bg-gradient-to-r from-gray-800/80 to-gray-800/40 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
           />
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl"
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
+            showFilters
+              ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/50'
+              : 'bg-gray-800/50 text-gray-300 border border-violet-500/20 hover:border-violet-500/40'
+          }`}
         >
           <Filter className="w-5 h-5" />
           Filtres
@@ -285,10 +270,10 @@ export const Inventory: React.FC = () => {
 
         <button
           onClick={() => setShowArchived(!showArchived)}
-          className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-colors ${
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
             showArchived
-              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-              : 'bg-white/5 text-gray-400 border border-white/10'
+              ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-500/50'
+              : 'bg-gray-800/50 text-gray-300 border border-violet-500/20 hover:border-violet-500/40'
           }`}
         >
           <Archive className="w-5 h-5" />
@@ -297,16 +282,16 @@ export const Inventory: React.FC = () => {
       </div>
 
       {showFilters && (
-        <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-4 animate-slide-down">
-          <div className="flex gap-2">
+        <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 border border-violet-500/20 rounded-2xl p-5 animate-slide-down shadow-xl">
+          <div className="flex gap-3 flex-wrap">
             {(['all', 'available', 'repair', 'sold'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-5 py-2.5 rounded-xl font-semibold transition-all ${
                   filterStatus === status
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
-                    : 'bg-white/5 text-gray-400'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/50'
+                    : 'bg-gray-900/50 text-gray-400 border border-violet-500/20 hover:border-violet-500/40'
                 }`}
               >
                 {status === 'all'
@@ -322,7 +307,7 @@ export const Inventory: React.FC = () => {
         </div>
       )}
 
-      {/* LIST */}
+      {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPhones.map((phone) => {
           const status = getPhoneStatus(phone);
@@ -330,85 +315,116 @@ export const Inventory: React.FC = () => {
           return (
             <div
               key={phone.id}
-              className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:scale-105 transition"
+              className="group relative bg-gradient-to-br from-gray-800/80 to-gray-800/40 border border-violet-500/20 rounded-2xl p-6 hover:border-violet-500/60 hover:shadow-2xl hover:shadow-violet-500/20 transition-all duration-300 overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white">{phone.model}</h3>
-                  <p className="text-sm text-gray-400">{phone.storage} • {phone.color}</p>
+              {/* Gradient overlay au hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+              <div className="relative z-10">
+                {/* HEADER */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+                        <Smartphone className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{phone.model}</h3>
+                        <p className="text-sm text-violet-300">{phone.storage}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 ml-12">{phone.color}</p>
+                  </div>
+
+                  {getStatusBadge(status)}
                 </div>
 
-                {/* STATUS BADGE */}
-                {getStatusBadge(status)}
-              </div>
+                {/* INFO */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-violet-500/10">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">IMEI</span>
+                    <span className="text-white font-mono text-sm">{phone.imei}</span>
+                  </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">IMEI</span>
-                  <span className="text-white font-mono">{phone.imei}</span>
+                  {!phone.is_sold && (
+                    <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-violet-500/10">
+                      <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        Achat
+                      </span>
+                      <span className="text-white font-bold">{phone.purchase_price.toFixed(2)}€</span>
+                    </div>
+                  )}
+
+                  {phone.is_sold && phone.sale_price && (
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg border border-emerald-500/30">
+                      <span className="text-xs text-emerald-400 uppercase tracking-wide font-semibold">Vendu</span>
+                      <span className="text-emerald-400 font-bold text-lg">{phone.sale_price.toFixed(2)}€</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-violet-500/10">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Date d'achat
+                    </span>
+                    <span className="text-white text-sm">
+                      {new Date(phone.purchase_date).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
                 </div>
 
-                {!phone.is_sold && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Achat</span>
-                    <span className="text-white">€{phone.purchase_price}</span>
-                  </div>
-                )}
+                {/* ACTIONS */}
+                <div className="grid grid-cols-4 gap-2 pt-4 border-t border-violet-500/20">
+                  <button
+                    onClick={() => {
+                      setSelectedPhone(phone);
+                      setShowDetailModal(true);
+                    }}
+                    className="p-3 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-400 rounded-lg hover:from-violet-500/30 hover:to-fuchsia-500/30 transition-all group/btn"
+                    title="Voir détails"
+                  >
+                    <Eye className="w-4 h-4 mx-auto group-hover/btn:scale-110 transition-transform" />
+                  </button>
 
-                {phone.is_sold && phone.sale_price && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Vendu</span>
-                    <span className="text-emerald-400">€{phone.sale_price}</span>
-                  </div>
-                )}
-              </div>
+                  <button
+                    onClick={() => {
+                      setSelectedPhone(phone);
+                      setShowModal(true);
+                    }}
+                    className="p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-blue-400 rounded-lg hover:from-blue-500/30 hover:to-cyan-500/30 transition-all group/btn"
+                    title="Modifier"
+                  >
+                    <Edit className="w-4 h-4 mx-auto group-hover/btn:scale-110 transition-transform" />
+                  </button>
 
-              <div className="flex gap-2 pt-4 border-t border-white/10 mt-4">
-                <button
-                  onClick={() => {
-                    setSelectedPhone(phone);
-                    setShowDetailModal(true);
-                  }}
-                  className="flex-1 bg-violet-600/20 text-violet-400 p-2 rounded-lg"
-                >
-                  <Eye className="w-4 h-4 mx-auto" />
-                </button>
+                  <button
+                    onClick={() => handleArchiveToggle(phone)}
+                    disabled={!phone.archived && !phone.is_sold}
+                    className={`p-3 rounded-lg transition-all group/btn ${
+                      !phone.archived && !phone.is_sold
+                        ? 'bg-gray-700/20 text-gray-600 cursor-not-allowed opacity-50'
+                        : 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 text-yellow-400 hover:from-yellow-500/30 hover:to-orange-500/30'
+                    }`}
+                    title={
+                      phone.archived
+                        ? 'Désarchiver'
+                        : phone.is_sold
+                        ? 'Archiver'
+                        : 'Archivage disponible uniquement pour les téléphones vendus'
+                    }
+                  >
+                    <Archive className="w-4 h-4 mx-auto group-hover/btn:scale-110 transition-transform" />
+                  </button>
 
-                <button
-                  onClick={() => {
-                    setSelectedPhone(phone);
-                    setShowModal(true);
-                  }}
-                  className="flex-1 bg-blue-600/20 text-blue-400 p-2 rounded-lg"
-                >
-                  <Edit className="w-4 h-4 mx-auto" />
-                </button>
-
-                <button
-                  onClick={() => handleArchiveToggle(phone)}
-                  disabled={!phone.archived && !phone.is_sold}
-                  className={`flex-1 p-2 rounded-lg transition-all ${
-                    !phone.archived && !phone.is_sold
-                      ? 'bg-gray-700/20 text-gray-600 cursor-not-allowed opacity-50'
-                      : 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30'
-                  }`}
-                  title={
-                    phone.archived
-                      ? 'Désarchiver'
-                      : phone.is_sold
-                      ? 'Archiver'
-                      : 'Archivage disponible uniquement pour les téléphones vendus'
-                  }
-                >
-                  <Archive className="w-4 h-4 mx-auto" />
-                </button>
-
-                <button
-                  onClick={() => handleDelete(phone.id)}
-                  className="flex-1 bg-red-600/20 text-red-400 p-2 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4 mx-auto" />
-                </button>
+                  <button
+                    onClick={() => handleDelete(phone.id)}
+                    className="p-3 bg-gradient-to-br from-red-500/20 to-pink-500/20 text-red-400 rounded-lg hover:from-red-500/30 hover:to-pink-500/30 transition-all group/btn"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-4 h-4 mx-auto group-hover/btn:scale-110 transition-transform" />
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -416,12 +432,17 @@ export const Inventory: React.FC = () => {
       </div>
 
       {filteredPhones.length === 0 && (
-        <div className="text-center py-12">
-          <Archive className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">
+        <div className="text-center py-20">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+            <Archive className="w-10 h-10 text-gray-500" />
+          </div>
+          <p className="text-gray-400 text-lg font-medium">
             {showArchived
               ? 'Aucun téléphone archivé'
               : 'Aucun téléphone trouvé'}
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            {!showArchived && "Commencez par ajouter votre premier téléphone"}
           </p>
         </div>
       )}
