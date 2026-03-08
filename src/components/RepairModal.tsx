@@ -67,14 +67,35 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           id,
           stock_piece_id,
           quantity_used,
-          stock_piece:stock_pieces(name, purchase_price)
+          stock_pieces!inner (
+            name,
+            purchase_price
+          )
         `)
         .eq('repair_id', repair.id);
 
-      if (error) throw error;
-      setUsedPieces(data || []);
+      if (error) {
+        console.error('Erreur Supabase:', error);
+        throw error;
+      }
+
+      console.log('Données repair_parts chargées:', data);
+
+      // Transformer les données pour matcher l'interface
+      const transformedData = data?.map((item: any) => ({
+        id: item.id,
+        stock_piece_id: item.stock_piece_id,
+        quantity_used: item.quantity_used,
+        stock_piece: {
+          name: item.stock_pieces.name,
+          purchase_price: item.stock_pieces.purchase_price
+        }
+      })) || [];
+
+      setUsedPieces(transformedData);
     } catch (error) {
       console.error('Erreur lors du chargement des pièces:', error);
+      showToast('Erreur lors du chargement des pièces', 'error');
     } finally {
       setLoadingPieces(false);
     }
