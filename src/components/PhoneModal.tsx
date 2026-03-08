@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Smartphone, Calendar, Battery, DollarSign, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
@@ -160,253 +160,295 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto backdrop-blur-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
+        
+        {/* Background gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/10 pointer-events-none"></div>
+        
+        {/* Content */}
+        <div className="relative bg-gray-900/95 backdrop-blur-xl border border-violet-500/20 rounded-3xl overflow-hidden">
 
-        <div className="sticky top-0 z-10 backdrop-blur-xl bg-white/5 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            {phone ? 'Modifier le téléphone' : 'Ajouter un téléphone'}
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          {/* HEADER avec gradient */}
+          <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-6 py-5 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                <Smartphone className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">
+                {phone ? 'Modifier le téléphone' : 'Ajouter un téléphone'}
+              </h2>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-sm border border-white/20"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Scrollable content */}
+          <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)] p-6 space-y-5">
 
-            {/* Modèle avec auto-complétion */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Modèle</label>
-              <input
-                type="text"
-                value={modelSearch}
-                onChange={(e) => {
-                  setModelSearch(e.target.value);
-                  setFormData({ ...formData, model: e.target.value });
-                  setShowModelList(true);
-                }}
-                onFocus={() => setShowModelList(true)}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="Rechercher un modèle..."
-                autoComplete="off"
-              />
-              
-              {/* Liste déroulante des modèles */}
-              {showModelList && filteredModels.length > 0 && (
-                <div className="absolute z-20 w-full mt-1 max-h-60 overflow-y-auto bg-gray-900 border border-white/10 rounded-xl shadow-2xl">
-                  {filteredModels.map((model, index) => (
-                    <div
-                      key={index}
-                      onClick={() => handleModelSelect(model)}
-                      className="px-4 py-2.5 hover:bg-violet-500/20 cursor-pointer text-white transition-colors border-b border-white/5 last:border-b-0"
-                    >
-                      {model}
+            {/* SECTION PRINCIPALE */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                {/* Modèle avec auto-complétion */}
+                <div className="relative">
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                    Modèle
+                  </label>
+                  <input
+                    type="text"
+                    value={modelSearch}
+                    onChange={(e) => {
+                      setModelSearch(e.target.value);
+                      setFormData({ ...formData, model: e.target.value });
+                      setShowModelList(true);
+                    }}
+                    onFocus={() => setShowModelList(true)}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                    placeholder="Rechercher un modèle..."
+                    autoComplete="off"
+                  />
+                  
+                  {/* Liste déroulante */}
+                  {showModelList && filteredModels.length > 0 && (
+                    <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                      {filteredModels.map((model, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleModelSelect(model)}
+                          className="px-4 py-3 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20 cursor-pointer text-white transition-all border-b border-violet-500/10 last:border-b-0"
+                        >
+                          {model}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+
+                {/* Stockage */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                    Stockage
+                  </label>
+                  <select
+                    value={formData.storage}
+                    onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  >
+                    {STORAGE_OPTIONS.map((s) => (
+                      <option key={s} value={s} className="bg-gray-900">{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Couleur */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                    Couleur
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                    placeholder="Noir sidéral"
+                  />
+                </div>
+
+                {/* IMEI */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                    IMEI
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.imei}
+                    onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all font-mono"
+                    placeholder="123456789012345"
+                  />
+                </div>
+
+                {/* Prix d'achat */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Prix d'achat (€)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={formatPriceDisplay(formData.purchase_price)}
+                    onChange={(e) => {
+                      const parsed = parsePriceInput(e.target.value);
+                      setFormData({ ...formData, purchase_price: parsed === "" ? 0 : parsed });
+                    }}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                    placeholder="999,00"
+                  />
+                </div>
+
+                {/* Date d'achat */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Date d'achat
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.purchase_date}
+                    onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  />
+                </div>
+
+                {/* Santé de la batterie */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <Battery className="w-4 h-4" />
+                    Santé de la batterie (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.battery_health || ''}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      battery_health: e.target.value ? parseInt(e.target.value) : null 
+                    })}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                    placeholder="100"
+                  />
+                </div>
+
+                {/* Compte d'achat */}
+                <div>
+                  <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Compte d'achat
+                  </label>
+                  <select
+                    value={formData.purchase_account_id || ''}
+                    onChange={(e) => setFormData({ ...formData, purchase_account_id: e.target.value || null })}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  >
+                    <option value="" className="bg-gray-900">Aucun / Non spécifié</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id} className="bg-gray-900">{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Notes */}
+              <div className="mt-5">
+                <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                  Notes
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white resize-none placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                  placeholder="Notes supplémentaires..."
+                />
+              </div>
+            </div>
+
+            {/* SECTION VENTE */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_sold}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      is_sold: e.target.checked,
+                      sale_date: e.target.checked ? today : null,
+                    })
+                  }
+                  className="w-5 h-5 rounded bg-gray-900/50 border-violet-500/30 text-violet-600 focus:ring-violet-500"
+                />
+                <span className="text-sm font-semibold text-white uppercase tracking-wide">Marquer comme vendu</span>
+              </label>
+
+              {formData.is_sold && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 animate-slide-down">
+                  {/* Prix de vente */}
+                  <div>
+                    <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                      Prix de vente (€)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formatPriceDisplay(formData.sale_price)}
+                      onChange={(e) => {
+                        const parsed = parsePriceInput(e.target.value);
+                        setFormData({ ...formData, sale_price: parsed === "" ? null : parsed });
+                      }}
+                      className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                      placeholder="1199,00"
+                    />
+                  </div>
+
+                  {/* Date de vente */}
+                  <div>
+                    <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                      Date de vente
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.sale_date || ''}
+                      onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Stockage */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Stockage</label>
-              <select
-                value={formData.storage}
-                onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+            {/* BOUTONS */}
+            <div className="flex gap-4 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 bg-gray-800/50 hover:bg-gray-800 text-white font-semibold rounded-xl transition-all border border-violet-500/20"
               >
-                {STORAGE_OPTIONS.map((s) => (
-                  <option key={s} value={s} className="bg-gray-900">{s}</option>
-                ))}
-              </select>
-            </div>
+                Annuler
+              </button>
 
-            {/* Couleur */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Couleur</label>
-              <input
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="Noir sidéral"
-              />
-            </div>
-
-            {/* IMEI */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">IMEI</label>
-              <input
-                type="text"
-                value={formData.imei}
-                onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="123456789012345"
-              />
-            </div>
-
-            {/* Prix d'achat */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Prix d'achat (€)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={formatPriceDisplay(formData.purchase_price)}
-                onChange={(e) => {
-                  const parsed = parsePriceInput(e.target.value);
-                  setFormData({ ...formData, purchase_price: parsed === "" ? 0 : parsed });
-                }}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="999,00"
-              />
-            </div>
-
-            {/* Date d'achat */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Date d'achat</label>
-              <input
-                type="date"
-                value={formData.purchase_date}
-                onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                required
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
-              />
-            </div>
-
-            {/* Santé de la batterie */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Santé de la batterie (%)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.battery_health || ''}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  battery_health: e.target.value ? parseInt(e.target.value) : null 
-                })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                placeholder="100"
-              />
-            </div>
-
-            {/* Compte d'achat */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Compte d'achat</label>
-              <select
-                value={formData.purchase_account_id || ''}
-                onChange={(e) => setFormData({ ...formData, purchase_account_id: e.target.value || null })}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl shadow-lg shadow-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
-                <option value="" className="bg-gray-900">Aucun / Non spécifié</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id} className="bg-gray-900">{a.name}</option>
-                ))}
-              </select>
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  'Enregistrer'
+                )}
+              </button>
             </div>
 
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white resize-none placeholder-gray-500"
-              placeholder="Notes supplémentaires..."
-            />
-          </div>
-
-          {/* Checkbox vendu */}
-          <div className="border-t border-white/10 pt-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.is_sold}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    is_sold: e.target.checked,
-                    sale_date: e.target.checked ? today : null,
-                  })
-                }
-                className="w-5 h-5 bg-white/5 border-white/10 rounded"
-              />
-              <span className="text-sm font-medium text-gray-300">Marquer comme vendu</span>
-            </label>
-          </div>
-
-          {/* Prix + date de vente */}
-          {formData.is_sold && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-down">
-
-              {/* Prix de vente */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Prix de vente (€)</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={formatPriceDisplay(formData.sale_price)}
-                  onChange={(e) => {
-                    const parsed = parsePriceInput(e.target.value);
-                    setFormData({ ...formData, sale_price: parsed === "" ? null : parsed });
-                  }}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500"
-                  placeholder="1199,00"
-                />
-              </div>
-
-              {/* Date de vente */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Date de vente</label>
-                <input
-                  type="date"
-                  value={formData.sale_date || ''}
-                  onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white"
-                />
-              </div>
-
-            </div>
-          )}
-
-          {/* Boutons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl transition"
-            >
-              Annuler
-            </button>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                'Enregistrer'
-              )}
-            </button>
-          </div>
-
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
