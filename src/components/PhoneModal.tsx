@@ -151,7 +151,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
       onSave();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de l'enregistrement', 'error');
+      showToast(error.message || "Erreur lors de l'enregistrement", 'error');
     } finally {
       setLoading(false);
     }
