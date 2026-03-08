@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Loader2, Wrench, Smartphone, DollarSign, User, Link as LinkIcon, Package } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Loader2, Wrench, Smartphone, DollarSign, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
@@ -39,6 +39,13 @@ interface UsedPiece {
   };
 }
 
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'En attente' },
+  { value: 'in_progress', label: 'En cours' },
+  { value: 'completed', label: 'Terminée' },
+  { value: 'failed', label: 'Échoué' },
+];
+
 export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     phone_id: repair?.phone_id || '',
@@ -50,8 +57,30 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   const [loading, setLoading] = useState(false);
   const [usedPieces, setUsedPieces] = useState<UsedPiece[]>([]);
   const [loadingPieces, setLoadingPieces] = useState(false);
+  const [showPhoneList, setShowPhoneList] = useState(false);
+  const [showStatusList, setShowStatusList] = useState(false);
+  
+  // Refs pour détecter les clics en dehors
+  const phoneRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  
   const { userId } = useAuth();
   const { showToast } = useToast();
+
+  // Fermer les dropdowns si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (phoneRef.current && !phoneRef.current.contains(event.target as Node)) {
+        setShowPhoneList(false);
+      }
+      if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
+        setShowStatusList(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Charger les pièces utilisées
   const loadUsedPieces = async () => {
@@ -79,7 +108,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
       console.log('✅ Données repair_parts chargées:', data);
 
-      // Transformer les données pour matcher l'interface
       const transformedData = data?.map((item: any) => ({
         id: item.id,
         stock_piece_id: item.stock_piece_id,
@@ -106,7 +134,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     }
   }, [repair?.id]);
 
-  // Recharger le coût depuis la base de données
   const refreshCost = async () => {
     if (!repair?.id) return;
     
@@ -124,6 +151,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     } catch (error) {
       console.error('Erreur lors du rafraîchissement du coût:', error);
     }
+  };
+
+  const handlePhoneSelect = (phoneId: string) => {
+    setFormData({ ...formData, phone_id: phoneId });
+    setShowPhoneList(false);
+  };
+
+  const handleStatusSelect = (status: string) => {
+    setFormData({ ...formData, status });
+    setShowStatusList(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -189,6 +226,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     }
   };
 
+  const selectedPhone = phones.find(p => p.id === formData.phone_id);
+  const selectedStatus = STATUS_OPTIONS.find(s => s.value === formData.status);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
       <div className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
@@ -230,25 +270,38 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               </h3>
 
               <div className="space-y-5">
-                {/* Téléphone */}
-                <div>
+                {/* Téléphone avec dropdown */}
+                <div ref={phoneRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Smartphone className="w-4 h-4" />
                     Telephone
                   </label>
-                  <select
-                    value={formData.phone_id}
-                    onChange={(e) => setFormData({ ...formData, phone_id: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                  <button
+                    type="button"
+                    onClick={() => setShowPhoneList(!showPhoneList)}
+                    className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all text-left"
                   >
-                    <option value="" className="bg-gray-900">Selectionner un telephone</option>
-                    {phones.map((phone) => (
-                      <option key={phone.id} value={phone.id} className="bg-gray-900">
-                        {phone.model} - {phone.imei}
-                      </option>
-                    ))}
-                  </select>
+                    {selectedPhone ? `${selectedPhone.model} - ${selectedPhone.imei}` : 'Selectionner un telephone'}
+                  </button>
+                  
+                  {/* Liste déroulante téléphones */}
+                  {showPhoneList && (
+                    <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                      {phones.map((phone) => (
+                        <div
+                          key={phone.id}
+                          onClick={() => handlePhoneSelect(phone.id)}
+                          className={`px-4 py-3 cursor-pointer transition-all border-b border-violet-500/10 last:border-b-0 ${
+                            formData.phone_id === phone.id
+                              ? 'bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-white font-semibold'
+                              : 'text-white hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20'
+                          }`}
+                        >
+                          {phone.model} - {phone.imei}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -308,22 +361,37 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                     </p>
                   </div>
 
-                  {/* Statut */}
-                  <div>
+                  {/* Statut avec dropdown */}
+                  <div ref={statusRef} className="relative">
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Statut
                     </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      required
-                      className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                    <button
+                      type="button"
+                      onClick={() => setShowStatusList(!showStatusList)}
+                      className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all text-left"
                     >
-                      <option value="pending" className="bg-gray-900">En attente</option>
-                      <option value="in_progress" className="bg-gray-900">En cours</option>
-                      <option value="completed" className="bg-gray-900">Terminee</option>
-                      <option value="failed" className="bg-gray-900">Echec</option>
-                    </select>
+                      {selectedStatus?.label || 'En attente'}
+                    </button>
+                    
+                    {/* Liste déroulante statuts */}
+                    {showStatusList && (
+                      <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
+                        {STATUS_OPTIONS.map((status) => (
+                          <div
+                            key={status.value}
+                            onClick={() => handleStatusSelect(status.value)}
+                            className={`px-4 py-3 cursor-pointer transition-all border-b border-violet-500/10 last:border-b-0 ${
+                              formData.status === status.value
+                                ? 'bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-white font-semibold'
+                                : 'text-white hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-fuchsia-500/20'
+                            }`}
+                          >
+                            {status.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
