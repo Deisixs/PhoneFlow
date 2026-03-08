@@ -240,11 +240,6 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
               </div>
 
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">État</p>
-                <p className="text-white font-semibold">{phone.condition}</p>
-              </div>
-
-              <div>
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">IMEI</p>
                 <p className="text-white font-mono text-sm">{phone.imei}</p>
               </div>
