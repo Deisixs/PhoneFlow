@@ -3,7 +3,7 @@ import { X, Loader2, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
-import StockPieceSelector from './StockPieceSelector';
+import StockPieceSelector from '../components/StockPieceSelector';
 
 interface Repair {
   id: string;
