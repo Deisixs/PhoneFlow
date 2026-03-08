@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Loader2, Smartphone, Calendar, Battery, DollarSign, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -131,8 +131,36 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   const [showAccountList, setShowAccountList] = useState(false);
   const [modelSearch, setModelSearch] = useState(phone?.model || '');
   const [colorSearch, setColorSearch] = useState(phone?.color || '');
+  
+  // Refs pour détecter les clics en dehors
+  const modelRef = useRef<HTMLDivElement>(null);
+  const storageRef = useRef<HTMLDivElement>(null);
+  const colorRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+  
   const { userId } = useAuth();
   const { showToast } = useToast();
+
+  // Fermer les dropdowns si on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelRef.current && !modelRef.current.contains(event.target as Node)) {
+        setShowModelList(false);
+      }
+      if (storageRef.current && !storageRef.current.contains(event.target as Node)) {
+        setShowStorageList(false);
+      }
+      if (colorRef.current && !colorRef.current.contains(event.target as Node)) {
+        setShowColorList(false);
+      }
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setShowAccountList(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Filtrer les modèles selon la recherche
   const filteredModels = IPHONE_MODELS.filter(model =>
@@ -237,7 +265,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 {/* Modèle avec auto-complétion */}
-                <div className="relative">
+                <div ref={modelRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Modèle
                   </label>
@@ -273,7 +301,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 </div>
 
                 {/* Stockage avec dropdown */}
-                <div className="relative">
+                <div ref={storageRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Stockage
                   </label>
@@ -306,7 +334,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 </div>
 
                 {/* Couleur avec auto-complétion */}
-                <div className="relative">
+                <div ref={colorRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Couleur
                   </label>
@@ -412,7 +440,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                 </div>
 
                 {/* Compte d'achat avec dropdown */}
-                <div className="relative">
+                <div ref={accountRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Package className="w-4 h-4" />
                     Compte d'achat
