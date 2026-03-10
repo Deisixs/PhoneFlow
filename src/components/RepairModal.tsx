@@ -140,114 +140,95 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   };
 
   const handleAddTemporaryPiece = async (piece: UsedPiece) => {
-  if (repair?.id) {
-    // Réparation existante : sauvegarder immédiatement
-    try {
-      console.log('🔍 Ajout de pièce pour réparation existante:', piece);
+    if (repair?.id) {
+      // Réparation existante : sauvegarder immédiatement
+      try {
+        console.log('🔍 Ajout de pièce pour réparation existante:', piece);
 
-      // 1. Vérifier que la pièce existe dans le stock AVANT tout
-      const { data: stockCheck, error: checkError } = await supabase
-        .from('stock_pieces')
-        .select('id, quantity')
-        .eq('id', piece.stock_piece_id)
-        .maybeSingle();
+        // 1. Vérifier que la pièce existe dans le stock AVANT tout
+        const { data: stockCheck, error: checkError } = await supabase
+          .from('stock_pieces')
+          .select('id, quantity')
+          .eq('id', piece.stock_piece_id)
+          .maybeSingle();
 
-      if (checkError) {
-        console.error('❌ Erreur vérification stock:', checkError);
-        throw new Error('Impossible de vérifier le stock');
-      }
+        if (checkError) {
+          console.error('❌ Erreur vérification stock:', checkError);
+          throw new Error('Impossible de vérifier le stock');
+        }
 
-      if (!stockCheck) {
-        console.error('❌ Pièce de stock introuvable, ID:', piece.stock_piece_id);
-        throw new Error('Pièce de stock introuvable');
-      }
+        if (!stockCheck) {
+          console.error('❌ Pièce de stock introuvable, ID:', piece.stock_piece_id);
+          throw new Error('Pièce de stock introuvable');
+        }
 
-      console.log('✅ Pièce trouvée, stock actuel:', stockCheck.quantity);
+        console.log('✅ Pièce trouvée, stock actuel:', stockCheck.quantity);
 
-      if (stockCheck.quantity < piece.quantity_used) {
-        throw new Error('Stock insuffisant');
-      }
+        if (stockCheck.quantity < piece.quantity_used) {
+          throw new Error('Stock insuffisant');
+        }
 
-      // 2. Insérer dans repair_parts
-      const { error: insertError } = await supabase
-        .from('repair_parts')
-        .insert({
-          repair_id: repair.id,
-          stock_piece_id: piece.stock_piece_id,
-          quantity_used: piece.quantity_used
-        });
+        // 2. Insérer dans repair_parts
+        const { error: insertError } = await supabase
+          .from('repair_parts')
+          .insert({
+            repair_id: repair.id,
+            stock_piece_id: piece.stock_piece_id,
+            quantity_used: piece.quantity_used
+          });
 
-      if (insertError) {
-        console.error('❌ Erreur insertion repair_parts:', insertError);
-        throw insertError;
-      }
+        if (insertError) {
+          console.error('❌ Erreur insertion repair_parts:', insertError);
+          throw insertError;
+        }
 
-      console.log('✅ Pièce insérée dans repair_parts');
+        console.log('✅ Pièce insérée dans repair_parts');
 
-      // 3. Mettre à jour le stock
-      const newQuantity = stockCheck.quantity - piece.quantity_used;
+        // 3. Mettre à jour le stock
+        const newQuantity = stockCheck.quantity - piece.quantity_used;
 
-      console.log('📊 Nouveau stock:', newQuantity);
+        console.log('📊 Nouveau stock:', newQuantity);
 
-      const { error: updateError } = await supabase
-        .from('stock_pieces')
-        .update({ quantity: newQuantity })
-        .eq('id', piece.stock_piece_id);
+        const { error: updateError } = await supabase
+          .from('stock_pieces')
+          .update({ quantity: newQuantity })
+          .eq('id', piece.stock_piece_id);
 
-      if (updateError) {
-        console.error('❌ Erreur mise à jour stock:', updateError);
-        throw updateError;
-      }
+        if (updateError) {
+          console.error('❌ Erreur mise à jour stock:', updateError);
+          throw updateError;
+        }
 
-      console.log('✅ Stock mis à jour');
+        console.log('✅ Stock mis à jour');
 
-      // 4. Mettre à jour le coût de la réparation
-      const newCost = formData.cost + (piece.quantity_used * piece.stock_piece.purchase_price);
-      
-      console.log('💰 Nouveau coût:', newCost);
+        // 4. Mettre à jour le coût de la réparation
+        const newCost = formData.cost + (piece.quantity_used * piece.stock_piece.purchase_price);
+        
+        console.log('💰 Nouveau coût:', newCost);
 
-      const { error: costError } = await supabase
-        .from('repairs')
-        .update({ cost: newCost })
-        .eq('id', repair.id);
+        const { error: costError } = await supabase
+          .from('repairs')
+          .update({ cost: newCost })
+          .eq('id', repair.id);
 
-      if (costError) {
-        console.error('❌ Erreur mise à jour coût:', costError);
-        throw costError;
-      }
+        if (costError) {
+          console.error('❌ Erreur mise à jour coût:', costError);
+          throw costError;
+        }
 
-      setFormData(prev => ({ ...prev, cost: newCost }));
+        setFormData(prev => ({ ...prev, cost: newCost }));
 
-      // 5. Recharger les pièces
-      await loadUsedPieces();
-
-      showToast('Piece ajoutee avec succes', 'success');
-    } catch (error: any) {
-      console.error('❌ Erreur complète ajout pièce:', error);
-      showToast(error.message || 'Erreur lors de l\'ajout de la piece', 'error');
-      // NE RIEN FAIRE - Si erreur, on ne modifie rien
-    }
-  } else {
-    // Nouvelle réparation : ajouter temporairement
-    console.log('📝 Ajout temporaire pour nouvelle réparation');
-    setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
-    
-    const newCost = [...usedPieces, piece].reduce(
-      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
-      0
-    );
-    setFormData(prev => ({ ...prev, cost: newCost }));
-  }
-};
-        // 4. Recharger les pièces
+        // 5. Recharger les pièces
         await loadUsedPieces();
 
         showToast('Piece ajoutee avec succes', 'success');
       } catch (error: any) {
         console.error('❌ Erreur complète ajout pièce:', error);
         showToast(error.message || 'Erreur lors de l\'ajout de la piece', 'error');
+        // NE RIEN FAIRE - Si erreur, on ne modifie rien
       }
     } else {
+      // Nouvelle réparation : ajouter temporairement
       console.log('📝 Ajout temporaire pour nouvelle réparation');
       setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
       
