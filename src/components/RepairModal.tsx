@@ -30,14 +30,14 @@ interface RepairModalProps {
 }
 
 interface UsedPiece {
-  id?: string; // Optionnel car peut être temporaire
+  id?: string;
   stock_piece_id: string;
   quantity_used: number;
   stock_piece: {
     name: string;
     purchase_price: number;
   };
-  isTemporary?: boolean; // Flag pour savoir si c'est une pièce non encore sauvegardée
+  isTemporary?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -61,14 +61,12 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   const [showPhoneList, setShowPhoneList] = useState(false);
   const [showStatusList, setShowStatusList] = useState(false);
   
-  // Refs pour détecter les clics en dehors
   const phoneRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   
   const { userId } = useAuth();
   const { showToast } = useToast();
 
-  // Fermer les dropdowns si on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (phoneRef.current && !phoneRef.current.contains(event.target as Node)) {
@@ -83,7 +81,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Charger les pièces utilisées (AVEC LEFT JOIN pour afficher même si quantité = 0)
   const loadUsedPieces = async () => {
     if (!repair?.id) return;
     
@@ -132,24 +129,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     }
   }, [repair?.id]);
 
-  const refreshCost = async () => {
-    if (!repair?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('repairs')
-        .select('cost')
-        .eq('repair_id', repair.id)
-        .single();
-      
-      if (data && !error) {
-        setFormData(prev => ({ ...prev, cost: data.cost }));
-      }
-    } catch (error) {
-      console.error('Erreur lors du rafraîchissement du coût:', error);
-    }
-  };
-
   const handlePhoneSelect = (phoneId: string) => {
     setFormData({ ...formData, phone_id: phoneId });
     setShowPhoneList(false);
@@ -160,11 +139,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-  // Ajouter une pièce temporairement (EN MÉMOIRE SEULEMENT)
   const handleAddTemporaryPiece = (piece: UsedPiece) => {
     setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
     
-    // Recalculer le coût
     const newCost = [...usedPieces, piece].reduce(
       (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
       0
@@ -172,11 +149,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setFormData(prev => ({ ...prev, cost: newCost }));
   };
 
-  // Retirer une pièce (temporaire ou déjà sauvegardée)
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
 
-    // Si la pièce est déjà sauvegardée en base de données
     if (!piece.isTemporary && piece.id && repair?.id) {
       try {
         const { error } = await supabase
@@ -193,11 +168,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       }
     }
 
-    // Retirer de la liste locale
     const newPieces = usedPieces.filter((_, i) => i !== index);
     setUsedPieces(newPieces);
 
-    // Recalculer le coût
     const newCost = newPieces.reduce(
       (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
       0
@@ -210,11 +183,9 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setLoading(true);
 
     try {
-      // 1. Sauvegarder la réparation
       let repairId = repair?.id;
 
       if (repair?.id) {
-        // Modification
         const { error } = await supabase
           .from('repairs')
           .update({
@@ -228,7 +199,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         if (error) throw error;
       } else {
-        // Création
         const { data, error } = await supabase
           .from('repairs')
           .insert({
@@ -248,9 +218,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         repairId = data.id;
       }
 
-      // 2. Sauvegarder les pièces temporaires
       const temporaryPieces = usedPieces.filter(p => p.isTemporary);
       
+      console.log('🔍 Pièces temporaires à sauvegarder:', temporaryPieces);
+
       if (temporaryPieces.length > 0 && repairId) {
         const piecesToInsert = temporaryPieces.map(p => ({
           repair_id: repairId,
@@ -258,43 +229,57 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           quantity_used: p.quantity_used
         }));
 
+        console.log('📦 Insertion dans repair_parts:', piecesToInsert);
+
         const { error: piecesError } = await supabase
           .from('repair_parts')
           .insert(piecesToInsert);
 
-        if (piecesError) throw piecesError;
+        if (piecesError) {
+          console.error('❌ Erreur insertion repair_parts:', piecesError);
+          throw piecesError;
+        }
 
-        // Mettre à jour les quantités dans stock_pieces
+        console.log('✅ Pièces insérées dans repair_parts');
+
         for (const piece of temporaryPieces) {
-          const { error: updateError } = await supabase.rpc(
-            'decrement_stock_quantity',
-            {
-              piece_id: piece.stock_piece_id,
-              quantity_to_remove: piece.quantity_used
-            }
-          );
+          console.log(`📉 Mise à jour stock pour pièce ${piece.stock_piece_id}, quantité: -${piece.quantity_used}`);
 
-          // Si la fonction RPC n'existe pas, on fait manuellement
-          if (updateError) {
-            const { data: currentStock } = await supabase
-              .from('stock_pieces')
-              .select('quantity')
-              .eq('id', piece.stock_piece_id)
-              .single();
+          const { data: currentStock, error: fetchError } = await supabase
+            .from('stock_pieces')
+            .select('quantity')
+            .eq('id', piece.stock_piece_id)
+            .single();
 
-            if (currentStock) {
-              await supabase
-                .from('stock_pieces')
-                .update({ quantity: currentStock.quantity - piece.quantity_used })
-                .eq('id', piece.stock_piece_id);
-            }
+          if (fetchError) {
+            console.error('❌ Erreur récupération stock:', fetchError);
+            throw fetchError;
           }
+
+          console.log(`📊 Stock actuel: ${currentStock.quantity}`);
+
+          const newQuantity = currentStock.quantity - piece.quantity_used;
+          
+          console.log(`📊 Nouveau stock: ${newQuantity}`);
+
+          const { error: updateError } = await supabase
+            .from('stock_pieces')
+            .update({ quantity: newQuantity })
+            .eq('id', piece.stock_piece_id);
+
+          if (updateError) {
+            console.error('❌ Erreur mise à jour stock:', updateError);
+            throw updateError;
+          }
+
+          console.log(`✅ Stock mis à jour pour pièce ${piece.stock_piece_id}`);
         }
       }
 
       showToast(repair ? 'Reparation modifiee avec succes' : 'Reparation ajoutee avec succes', 'success');
       onSave();
     } catch (error: any) {
+      console.error('❌ Erreur complète:', error);
       showToast(error.message || "Erreur lors de l'enregistrement", 'error');
     } finally {
       setLoading(false);
@@ -308,13 +293,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
       <div className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
         
-        {/* Background gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/10 pointer-events-none"></div>
         
-        {/* Content */}
         <div className="relative bg-gray-900/95 backdrop-blur-xl border border-violet-500/20 rounded-3xl overflow-hidden">
 
-          {/* HEADER avec gradient */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-6 py-5 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
@@ -332,10 +314,8 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             </button>
           </div>
 
-          {/* Scrollable content */}
           <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)] p-6 space-y-5">
 
-            {/* SECTION INFORMATIONS */}
             <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
               <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
@@ -345,7 +325,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               </h3>
 
               <div className="space-y-5">
-                {/* Téléphone avec dropdown */}
                 <div ref={phoneRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Smartphone className="w-4 h-4" />
@@ -359,7 +338,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                     {selectedPhone ? `${selectedPhone.model} - ${selectedPhone.imei}` : 'Selectionner un telephone'}
                   </button>
                   
-                  {/* Liste déroulante téléphones */}
                   {showPhoneList && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       {phones.map((phone) => (
@@ -379,7 +357,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                   )}
                 </div>
 
-                {/* Description */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Description
@@ -394,7 +371,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                   />
                 </div>
 
-                {/* Details de la reparation */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Details de la reparation (Optionnel)
@@ -409,7 +385,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Coût total */}
                   <div>
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                       <DollarSign className="w-4 h-4" />
@@ -431,7 +406,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                     </p>
                   </div>
 
-                  {/* Statut avec dropdown */}
                   <div ref={statusRef} className="relative">
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Statut
@@ -444,7 +418,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                       {selectedStatus?.label || 'En attente'}
                     </button>
                     
-                    {/* Liste déroulante statuts */}
                     {showStatusList && (
                       <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                         {STATUS_OPTIONS.map((status) => (
@@ -467,7 +440,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
               </div>
             </div>
 
-            {/* SECTION PIECES DU STOCK */}
             <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
               <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
@@ -476,7 +448,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 Pieces du stock
               </h3>
 
-              {/* Historique des pièces utilisées */}
               {loadingPieces ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
@@ -534,13 +505,11 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                 </div>
               )}
 
-              {/* Sélecteur pour ajouter des pièces */}
               <StockPieceSelector 
                 onAddPiece={handleAddTemporaryPiece}
               />
             </div>
 
-            {/* BOUTONS */}
             <div className="flex gap-4 pt-2">
               <button
                 type="button"
