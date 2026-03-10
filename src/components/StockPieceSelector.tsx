@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Package, AlertCircle } from 'lucide-react';
+import { X, Plus, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,35 +13,30 @@ interface StockPiece {
   supplier_link: string;
 }
 
-interface RepairPart {
-  id: string;
-  repair_id: string;
+interface UsedPiece {
   stock_piece_id: string;
   quantity_used: number;
-  stock_piece?: StockPiece;
+  stock_piece: {
+    name: string;
+    purchase_price: number;
+  };
 }
 
 interface StockPieceSelectorProps {
-  repairId: string;
-  onPiecesChange?: (costChange: number) => void;
+  onAddPiece: (piece: UsedPiece) => void;
 }
 
-function StockPieceSelector({ repairId, onPiecesChange }: StockPieceSelectorProps) {
+function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
   const { user } = useAuth();
   const [stockPieces, setStockPieces] = useState<StockPiece[]>([]);
-  const [selectedPieces, setSelectedPieces] = useState<RepairPart[]>([]);
   const [showSelector, setShowSelector] = useState(false);
   const [selectedPieceId, setSelectedPieceId] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(false);
 
   // Charger les pièces du stock
   useEffect(() => {
     fetchStockPieces();
-    if (repairId) {
-      fetchRepairParts();
-    }
-  }, [repairId, user]);
+  }, [user]);
 
   const fetchStockPieces = async () => {
     if (!user) return;
@@ -61,25 +56,8 @@ function StockPieceSelector({ repairId, onPiecesChange }: StockPieceSelectorProp
     }
   };
 
-  const fetchRepairParts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('repair_parts')
-        .select(`
-          *,
-          stock_piece:stock_pieces(*)
-        `)
-        .eq('repair_id', repairId);
-
-      if (error) throw error;
-      setSelectedPieces(data || []);
-    } catch (error) {
-      console.error('Erreur lors du chargement des pièces de réparation:', error);
-    }
-  };
-
-  const handleAddPiece = async () => {
-    if (!selectedPieceId || quantity < 1 || !user) return;
+  const handleAddPiece = () => {
+    if (!selectedPieceId || quantity < 1) return;
 
     const piece = stockPieces.find(p => p.id === selectedPieceId);
     if (!piece) return;
@@ -89,90 +67,20 @@ function StockPieceSelector({ repairId, onPiecesChange }: StockPieceSelectorProp
       return;
     }
 
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('repair_parts')
-        .insert({
-          repair_id: repairId,
-          stock_piece_id: selectedPieceId,
-          quantity_used: quantity
-        })
-        .select(`
-          *,
-          stock_piece:stock_pieces(*)
-        `)
-        .single();
-
-      if (error) throw error;
-
-      // Ajouter à la liste locale
-      setSelectedPieces([...selectedPieces, data]);
-      
-      // Mettre à jour le stock localement
-      setStockPieces(stockPieces.map(p => 
-        p.id === selectedPieceId 
-          ? { ...p, quantity: p.quantity - quantity }
-          : p
-      ));
-
-      // Notifier le parent du changement de coût
-      const totalCost = piece.purchase_price * quantity;
-      onPiecesChange?.(totalCost);
-
-      // Réinitialiser
-      setSelectedPieceId('');
-      setQuantity(1);
-      setShowSelector(false);
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de la pièce:', error);
-      alert('Erreur lors de l\'ajout de la pièce');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRemovePiece = async (partId: string, pieceId: string, quantityUsed: number) => {
-    if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('repair_parts')
-        .delete()
-        .eq('id', partId);
-
-      if (error) throw error;
-
-      // Retirer de la liste locale
-      setSelectedPieces(selectedPieces.filter(p => p.id !== partId));
-      
-      // Remettre en stock localement
-      setStockPieces(stockPieces.map(p => 
-        p.id === pieceId 
-          ? { ...p, quantity: p.quantity + quantityUsed }
-          : p
-      ));
-
-      // Notifier le parent
-      const piece = stockPieces.find(p => p.id === pieceId);
-      if (piece) {
-        const costReduction = -(piece.purchase_price * quantityUsed);
-        onPiecesChange?.(costReduction);
+    // Ajouter la pièce temporairement (pas de sauvegarde en base)
+    onAddPiece({
+      stock_piece_id: selectedPieceId,
+      quantity_used: quantity,
+      stock_piece: {
+        name: piece.name,
+        purchase_price: piece.purchase_price
       }
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression');
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
-  const getTotalCost = () => {
-    return selectedPieces.reduce((total, part) => {
-      const piece = part.stock_piece as StockPiece;
-      return total + (piece?.purchase_price || 0) * part.quantity_used;
-    }, 0);
+    // Réinitialiser
+    setSelectedPieceId('');
+    setQuantity(1);
+    setShowSelector(false);
   };
 
   return (
@@ -251,11 +159,11 @@ function StockPieceSelector({ repairId, onPiecesChange }: StockPieceSelectorProp
               <button
                 type="button"
                 onClick={handleAddPiece}
-                disabled={!selectedPieceId || loading}
+                disabled={!selectedPieceId}
                 className="w-full px-4 py-2 bg-violet-500 hover:bg-violet-600 disabled:bg-gray-700 
                          disabled:cursor-not-allowed text-white rounded-lg transition-colors"
               >
-                {loading ? 'Ajout en cours...' : 'Ajouter cette pièce'}
+                Ajouter cette pièce
               </button>
             </>
           )}
