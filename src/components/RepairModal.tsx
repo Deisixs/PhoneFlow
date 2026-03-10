@@ -261,63 +261,80 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       if (temporaryPieces.length > 0 && repairId) {
         console.log('💾 Sauvegarde de', temporaryPieces.length, 'pièces temporaires');
 
-        // Insérer dans repair_parts
-        const piecesToInsert = temporaryPieces.map(p => ({
-          repair_id: repairId,
-          stock_piece_id: p.stock_piece_id,
-          quantity_used: p.quantity_used
-        }));
-
-        const { error: piecesError } = await supabase
-          .from('repair_parts')
-          .insert(piecesToInsert);
-
-        if (piecesError) {
-          console.error('❌ Erreur insertion pieces:', piecesError);
-          throw piecesError;
-        }
-
-        console.log('✅ Pièces insérées dans repair_parts');
-
-        // Mettre à jour le stock pour chaque pièce
+        // Pour chaque pièce temporaire
         for (const piece of temporaryPieces) {
-          const { data: currentStock, error: fetchError } = await supabase
+          // 1. Récupérer les infos AVANT de modifier le stock
+          const { data: stockPiece, error: fetchError } = await supabase
             .from('stock_pieces')
-            .select('quantity')
+            .select('id, quantity, name, purchase_price')
             .eq('id', piece.stock_piece_id)
             .maybeSingle();
 
           if (fetchError) {
-            console.error('❌ Erreur récupération stock:', fetchError);
-            throw fetchError;
+            console.error('❌ Erreur récupération pièce:', fetchError);
+            continue;
           }
 
-          if (!currentStock) {
+          if (!stockPiece) {
             console.error('❌ Pièce introuvable:', piece.stock_piece_id);
             continue;
           }
 
-          const newQuantity = currentStock.quantity - piece.quantity_used;
+          console.log(`📦 Pièce trouvée: ${stockPiece.name}, stock: ${stockPiece.quantity}`);
 
-          console.log(`📊 ${piece.stock_piece.name}: ${currentStock.quantity} → ${newQuantity}`);
+          // 2. Insérer dans repair_parts
+          const { error: insertError } = await supabase
+            .from('repair_parts')
+            .insert({
+              repair_id: repairId,
+              stock_piece_id: piece.stock_piece_id,
+              quantity_used: piece.quantity_used
+            });
 
-          const { error: updateError } = await supabase
-            .from('stock_pieces')
-            .update({ quantity: newQuantity })
-            .eq('id', piece.stock_piece_id);
+          if (insertError) {
+            console.error('❌ Erreur insertion repair_part:', insertError);
+            continue;
+          }
 
-          if (updateError) {
-            console.error('❌ Erreur mise à jour stock:', updateError);
-            throw updateError;
+          console.log('✅ Pièce insérée dans repair_parts');
+
+          // 3. Mettre à jour le stock (peut supprimer si = 0)
+          const newQuantity = stockPiece.quantity - piece.quantity_used;
+
+          console.log(`📊 ${stockPiece.name}: ${stockPiece.quantity} → ${newQuantity}`);
+
+          if (newQuantity <= 0) {
+            // Supprimer la pièce du stock
+            const { error: deleteError } = await supabase
+              .from('stock_pieces')
+              .delete()
+              .eq('id', piece.stock_piece_id);
+
+            if (deleteError) {
+              console.error('❌ Erreur suppression pièce:', deleteError);
+            } else {
+              console.log('🗑️ Pièce supprimée du stock (quantité = 0)');
+            }
+          } else {
+            // Décrémenter la quantité
+            const { error: updateError } = await supabase
+              .from('stock_pieces')
+              .update({ quantity: newQuantity })
+              .eq('id', piece.stock_piece_id);
+
+            if (updateError) {
+              console.error('❌ Erreur mise à jour stock:', updateError);
+            } else {
+              console.log('✅ Stock mis à jour');
+            }
           }
         }
 
-        console.log('✅ Stock mis à jour pour toutes les pièces');
+        console.log('✅ Toutes les pièces ont été traitées');
       }
 
       showToast(repair ? 'Reparation modifiee avec succes' : 'Reparation ajoutee avec succes', 'success');
       
-      // IMPORTANT : Attendre que Supabase propage les changements
       await new Promise(resolve => setTimeout(resolve, 500));
       
       onSave();
