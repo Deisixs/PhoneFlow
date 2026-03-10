@@ -140,7 +140,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   };
 
   const handleAddTemporaryPiece = (piece: UsedPiece) => {
-    // TOUJOURS ajouter temporairement, même pour réparation existante
     console.log('📝 Ajout temporaire de pièce');
     setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
     
@@ -156,7 +155,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
     if (!piece.isTemporary && piece.id && repair?.id) {
       try {
-        // 1. Supprimer de repair_parts
         const { error: deleteError } = await supabase
           .from('repair_parts')
           .delete()
@@ -164,7 +162,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         if (deleteError) throw deleteError;
 
-        // 2. Remettre en stock
         const { data: currentStock, error: fetchError } = await supabase
           .from('stock_pieces')
           .select('quantity')
@@ -186,7 +183,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         if (updateError) throw updateError;
 
-        // 3. Mettre à jour le coût
         const costReduction = piece.quantity_used * piece.stock_piece.purchase_price;
         const newCost = formData.cost - costReduction;
 
@@ -320,6 +316,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       }
 
       showToast(repair ? 'Reparation modifiee avec succes' : 'Reparation ajoutee avec succes', 'success');
+      
+      // IMPORTANT : Attendre que Supabase propage les changements
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       onSave();
     } catch (error: any) {
       console.error('❌ Erreur complète:', error);
