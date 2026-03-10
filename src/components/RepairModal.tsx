@@ -135,26 +135,26 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-  const handleAddTemporaryPiece = (piece: UsedPiece) => {
-    console.log('📝 Ajout temporaire de pièce');
-    const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
-    setUsedPieces(newPieces);
-    
-    // Calculer le coût TOTAL de toutes les pièces (temporaires ET existantes)
-    const totalCost = newPieces.reduce(
-      (sum, p) => sum + (p.quantity_used * (p.stock_piece.purchase_price || 0)), 
-      0
-    );
-    
-    console.log('💰 Nouveau coût total:', totalCost);
-    
-    // Vérifier que le coût est un nombre valide
-    if (!isNaN(totalCost) && isFinite(totalCost)) {
-      setFormData(prev => ({ ...prev, cost: totalCost }));
-    } else {
-      console.error('❌ Coût invalide:', totalCost);
-    }
-  };
+const handleAddTemporaryPiece = (piece: UsedPiece) => {
+  console.log('📝 Ajout temporaire de pièce');
+  const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
+  setUsedPieces(newPieces);
+  
+  // Ajouter le coût de la nouvelle pièce au coût actuel
+  const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
+  const newCost = formData.cost + pieceCost;
+  
+  console.log('💰 Coût actuel:', formData.cost);
+  console.log('💰 Coût pièce:', pieceCost);
+  console.log('💰 Nouveau coût total:', newCost);
+  
+  // Vérifier que le coût est un nombre valide
+  if (!isNaN(newCost) && isFinite(newCost)) {
+    setFormData(prev => ({ ...prev, cost: newCost }));
+  } else {
+    console.error('❌ Coût invalide:', newCost);
+  }
+};
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
