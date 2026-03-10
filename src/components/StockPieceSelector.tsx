@@ -33,7 +33,6 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
   const [selectedPieceId, setSelectedPieceId] = useState('');
   const [quantity, setQuantity] = useState(1);
 
-  // Charger les pièces du stock
   useEffect(() => {
     fetchStockPieces();
   }, [user]);
@@ -60,16 +59,28 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
     if (!selectedPieceId || quantity < 1) return;
 
     const piece = stockPieces.find(p => p.id === selectedPieceId);
-    if (!piece) return;
+    if (!piece) {
+      console.error('❌ Pièce non trouvée dans la liste');
+      return;
+    }
 
     if (quantity > piece.quantity) {
       alert(`Stock insuffisant ! Disponible: ${piece.quantity}`);
       return;
     }
 
-    // Ajouter la pièce temporairement (pas de sauvegarde en base)
+    console.log('✅ Ajout de pièce:', {
+      stock_piece_id: piece.id,
+      quantity_used: quantity,
+      stock_piece: {
+        name: piece.name,
+        purchase_price: piece.purchase_price
+      }
+    });
+
+    // Ajouter la pièce (temporairement ou directement selon le contexte)
     onAddPiece({
-      stock_piece_id: selectedPieceId,
+      stock_piece_id: piece.id,
       quantity_used: quantity,
       stock_piece: {
         name: piece.name,
@@ -85,7 +96,6 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
 
   return (
     <div className="space-y-4">
-      {/* Bouton pour ajouter une pièce */}
       {!showSelector && (
         <button
           type="button"
@@ -98,7 +108,6 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
         </button>
       )}
 
-      {/* Sélecteur de pièce */}
       {showSelector && (
         <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-4">
           <div className="flex items-center justify-between">
