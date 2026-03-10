@@ -113,15 +113,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
       
-      // Recalculer le coût à partir des pièces chargées
-      const totalCost = transformedData.reduce(
-        (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
-        0
-      );
-      
-      if (!isNaN(totalCost) && isFinite(totalCost)) {
-        setFormData(prev => ({ ...prev, cost: totalCost }));
-      }
     } catch (error) {
       console.error('❌ Erreur lors du chargement des pièces:', error);
     } finally {
