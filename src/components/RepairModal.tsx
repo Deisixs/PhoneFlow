@@ -139,16 +139,18 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-  const handleAddTemporaryPiece = (piece: UsedPiece) => {
-    console.log('📝 Ajout temporaire de pièce');
-    setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
-    
-    const newCost = [...usedPieces, piece].reduce(
-      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
-      0
-    );
-    setFormData(prev => ({ ...prev, cost: newCost }));
-  };
+const handleAddTemporaryPiece = (piece: UsedPiece) => {
+  console.log('📝 Ajout temporaire de pièce');
+  const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
+  setUsedPieces(newPieces);
+  
+  // Calculer le coût TOTAL de toutes les pièces
+  const totalCost = newPieces.reduce(
+    (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+    0
+  );
+  setFormData(prev => ({ ...prev, cost: totalCost }));
+};
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
