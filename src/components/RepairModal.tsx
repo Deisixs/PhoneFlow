@@ -139,35 +139,127 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-  const handleAddTemporaryPiece = (piece: UsedPiece) => {
-    setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
-    
-    const newCost = [...usedPieces, piece].reduce(
-      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
-      0
-    );
-    setFormData(prev => ({ ...prev, cost: newCost }));
+  // MODIFICATION ICI : Gérer les pièces selon si c'est une réparation existante ou nouvelle
+  const handleAddTemporaryPiece = async (piece: UsedPiece) => {
+    // Si c'est une réparation existante, sauvegarder immédiatement
+    if (repair?.id) {
+      try {
+        // 1. Insérer dans repair_parts
+        const { error: insertError } = await supabase
+          .from('repair_parts')
+          .insert({
+            repair_id: repair.id,
+            stock_piece_id: piece.stock_piece_id,
+            quantity_used: piece.quantity_used
+          });
+
+        if (insertError) throw insertError;
+
+        // 2. Mettre à jour le stock
+        const { data: currentStock, error: fetchError } = await supabase
+          .from('stock_pieces')
+          .select('quantity')
+          .eq('id', piece.stock_piece_id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const newQuantity = currentStock.quantity - piece.quantity_used;
+
+        const { error: updateError } = await supabase
+          .from('stock_pieces')
+          .update({ quantity: newQuantity })
+          .eq('id', piece.stock_piece_id);
+
+        if (updateError) throw updateError;
+
+        // 3. Mettre à jour le coût de la réparation
+        const newCost = formData.cost + (piece.quantity_used * piece.stock_piece.purchase_price);
+        
+        const { error: costError } = await supabase
+          .from('repairs')
+          .update({ cost: newCost })
+          .eq('id', repair.id);
+
+        if (costError) throw costError;
+
+        setFormData(prev => ({ ...prev, cost: newCost }));
+
+        // 4. Recharger les pièces
+        await loadUsedPieces();
+
+        showToast('Piece ajoutee avec succes', 'success');
+      } catch (error: any) {
+        console.error('Erreur ajout pièce:', error);
+        showToast('Erreur lors de l\'ajout de la piece', 'error');
+      }
+    } else {
+      // Pour une nouvelle réparation, ajouter temporairement
+      setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
+      
+      const newCost = [...usedPieces, piece].reduce(
+        (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+        0
+      );
+      setFormData(prev => ({ ...prev, cost: newCost }));
+    }
   };
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
 
+    // Si la pièce est déjà sauvegardée en base
     if (!piece.isTemporary && piece.id && repair?.id) {
       try {
-        const { error } = await supabase
+        // 1. Supprimer de repair_parts
+        const { error: deleteError } = await supabase
           .from('repair_parts')
           .delete()
           .eq('id', piece.id);
 
-        if (error) throw error;
-        
+        if (deleteError) throw deleteError;
+
+        // 2. Remettre en stock
+        const { data: currentStock, error: fetchError } = await supabase
+          .from('stock_pieces')
+          .select('quantity')
+          .eq('id', piece.stock_piece_id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const newQuantity = currentStock.quantity + piece.quantity_used;
+
+        const { error: updateError } = await supabase
+          .from('stock_pieces')
+          .update({ quantity: newQuantity })
+          .eq('id', piece.stock_piece_id);
+
+        if (updateError) throw updateError;
+
+        // 3. Mettre à jour le coût
+        const costReduction = piece.quantity_used * piece.stock_piece.purchase_price;
+        const newCost = formData.cost - costReduction;
+
+        const { error: costError } = await supabase
+          .from('repairs')
+          .update({ cost: newCost })
+          .eq('id', repair.id);
+
+        if (costError) throw costError;
+
+        setFormData(prev => ({ ...prev, cost: newCost }));
+
         showToast('Piece retiree avec succes', 'success');
+        await loadUsedPieces();
+        return;
       } catch (error: any) {
         showToast(error.message || 'Erreur lors de la suppression', 'error');
         return;
       }
     }
 
+    // Pour les pièces temporaires
     const newPieces = usedPieces.filter((_, i) => i !== index);
     setUsedPieces(newPieces);
 
@@ -186,6 +278,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       let repairId = repair?.id;
 
       if (repair?.id) {
+        // Modification d'une réparation existante
         const { error } = await supabase
           .from('repairs')
           .update({
@@ -199,6 +292,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         if (error) throw error;
       } else {
+        // Création d'une nouvelle réparation
         const { data, error } = await supabase
           .from('repairs')
           .insert({
@@ -216,63 +310,43 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
         if (error) throw error;
         repairId = data.id;
-      }
 
-      const temporaryPieces = usedPieces.filter(p => p.isTemporary);
-      
-      console.log('🔍 Pièces temporaires à sauvegarder:', temporaryPieces);
+        // Sauvegarder les pièces temporaires
+        const temporaryPieces = usedPieces.filter(p => p.isTemporary);
+        
+        if (temporaryPieces.length > 0 && repairId) {
+          // Insérer les pièces dans repair_parts
+          const piecesToInsert = temporaryPieces.map(p => ({
+            repair_id: repairId,
+            stock_piece_id: p.stock_piece_id,
+            quantity_used: p.quantity_used
+          }));
 
-      if (temporaryPieces.length > 0 && repairId) {
-        const piecesToInsert = temporaryPieces.map(p => ({
-          repair_id: repairId,
-          stock_piece_id: p.stock_piece_id,
-          quantity_used: p.quantity_used
-        }));
+          const { error: piecesError } = await supabase
+            .from('repair_parts')
+            .insert(piecesToInsert);
 
-        console.log('📦 Insertion dans repair_parts:', piecesToInsert);
+          if (piecesError) throw piecesError;
 
-        const { error: piecesError } = await supabase
-          .from('repair_parts')
-          .insert(piecesToInsert);
+          // Mettre à jour les quantités dans stock_pieces
+          for (const piece of temporaryPieces) {
+            const { data: currentStock, error: fetchError } = await supabase
+              .from('stock_pieces')
+              .select('quantity')
+              .eq('id', piece.stock_piece_id)
+              .single();
 
-        if (piecesError) {
-          console.error('❌ Erreur insertion repair_parts:', piecesError);
-          throw piecesError;
-        }
+            if (fetchError) throw fetchError;
 
-        console.log('✅ Pièces insérées dans repair_parts');
+            const newQuantity = currentStock.quantity - piece.quantity_used;
 
-        for (const piece of temporaryPieces) {
-          console.log(`📉 Mise à jour stock pour pièce ${piece.stock_piece_id}, quantité: -${piece.quantity_used}`);
+            const { error: updateError } = await supabase
+              .from('stock_pieces')
+              .update({ quantity: newQuantity })
+              .eq('id', piece.stock_piece_id);
 
-          const { data: currentStock, error: fetchError } = await supabase
-            .from('stock_pieces')
-            .select('quantity')
-            .eq('id', piece.stock_piece_id)
-            .single();
-
-          if (fetchError) {
-            console.error('❌ Erreur récupération stock:', fetchError);
-            throw fetchError;
+            if (updateError) throw updateError;
           }
-
-          console.log(`📊 Stock actuel: ${currentStock.quantity}`);
-
-          const newQuantity = currentStock.quantity - piece.quantity_used;
-          
-          console.log(`📊 Nouveau stock: ${newQuantity}`);
-
-          const { error: updateError } = await supabase
-            .from('stock_pieces')
-            .update({ quantity: newQuantity })
-            .eq('id', piece.stock_piece_id);
-
-          if (updateError) {
-            console.error('❌ Erreur mise à jour stock:', updateError);
-            throw updateError;
-          }
-
-          console.log(`✅ Stock mis à jour pour pièce ${piece.stock_piece_id}`);
         }
       }
 
