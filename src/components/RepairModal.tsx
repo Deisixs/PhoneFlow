@@ -112,7 +112,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
       console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
-      
     } catch (error) {
       console.error('❌ Erreur lors du chargement des pièces:', error);
     } finally {
@@ -457,19 +456,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                       <DollarSign className="w-4 h-4" />
                       Cout total (€)
                     </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={isNaN(formData.cost) ? 0 : formData.cost}
-                        readOnly
-                        className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all cursor-not-allowed"
-                      />
-                      <div className="absolute inset-0 bg-gray-900/30 rounded-xl pointer-events-none"></div>
-                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={isNaN(formData.cost) ? 0 : formData.cost}
+                      onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
+                    />
                     <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                      ✨ Coût calculé automatiquement avec les pièces
+                      💡 Modifiable manuellement ou calculé automatiquement avec les pièces
                     </p>
                   </div>
 
