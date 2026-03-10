@@ -30,13 +30,14 @@ interface RepairModalProps {
 }
 
 interface UsedPiece {
-  id: string;
+  id?: string; // Optionnel car peut être temporaire
   stock_piece_id: string;
   quantity_used: number;
   stock_piece: {
     name: string;
     purchase_price: number;
   };
+  isTemporary?: boolean; // Flag pour savoir si c'est une pièce non encore sauvegardée
 }
 
 const STATUS_OPTIONS = [
@@ -82,7 +83,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Charger les pièces utilisées
+  // Charger les pièces utilisées (AVEC LEFT JOIN pour afficher même si quantité = 0)
   const loadUsedPieces = async () => {
     if (!repair?.id) return;
     
@@ -106,8 +107,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         throw error;
       }
 
-      console.log('✅ Données repair_parts chargées:', data);
-
       const transformedData = data?.map((item: any) => ({
         id: item.id,
         stock_piece_id: item.stock_piece_id,
@@ -115,10 +114,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         stock_piece: {
           name: item.stock_pieces?.name || 'Pièce supprimée',
           purchase_price: item.stock_pieces?.purchase_price || 0
-        }
+        },
+        isTemporary: false
       })) || [];
 
-      console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
     } catch (error) {
       console.error('❌ Erreur lors du chargement des pièces:', error);
@@ -129,7 +128,6 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
   useEffect(() => {
     if (repair?.id) {
-      console.log('🔄 Chargement initial des pièces pour repair:', repair.id);
       loadUsedPieces();
     }
   }, [repair?.id]);
@@ -141,11 +139,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       const { data, error } = await supabase
         .from('repairs')
         .select('cost')
-        .eq('id', repair.id)
+        .eq('repair_id', repair.id)
         .single();
       
       if (data && !error) {
-        console.log('💰 Coût mis à jour:', data.cost);
         setFormData(prev => ({ ...prev, cost: data.cost }));
       }
     } catch (error) {
@@ -163,66 +160,144 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
+  // Ajouter une pièce temporairement (EN MÉMOIRE SEULEMENT)
+  const handleAddTemporaryPiece = (piece: UsedPiece) => {
+    setUsedPieces([...usedPieces, { ...piece, isTemporary: true }]);
+    
+    // Recalculer le coût
+    const newCost = [...usedPieces, piece].reduce(
+      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+      0
+    );
+    setFormData(prev => ({ ...prev, cost: newCost }));
+  };
+
+  // Retirer une pièce (temporaire ou déjà sauvegardée)
+  const handleRemovePiece = async (piece: UsedPiece, index: number) => {
+    if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
+
+    // Si la pièce est déjà sauvegardée en base de données
+    if (!piece.isTemporary && piece.id && repair?.id) {
+      try {
+        const { error } = await supabase
+          .from('repair_parts')
+          .delete()
+          .eq('id', piece.id);
+
+        if (error) throw error;
+        
+        showToast('Piece retiree avec succes', 'success');
+      } catch (error: any) {
+        showToast(error.message || 'Erreur lors de la suppression', 'error');
+        return;
+      }
+    }
+
+    // Retirer de la liste locale
+    const newPieces = usedPieces.filter((_, i) => i !== index);
+    setUsedPieces(newPieces);
+
+    // Recalculer le coût
+    const newCost = newPieces.reduce(
+      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+      0
+    );
+    setFormData(prev => ({ ...prev, cost: newCost }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const repairData = {
-        phone_id: formData.phone_id,
-        description: formData.description,
-        repair_list: formData.repair_list,
-        status: formData.status,
-        user_id: userId!,
-        technician: null,
-        photo_url: null,
-        ...(repair?.id ? {} : { cost: Number(formData.cost) || 0 })
-      };
+      // 1. Sauvegarder la réparation
+      let repairId = repair?.id;
 
       if (repair?.id) {
+        // Modification
         const { error } = await supabase
           .from('repairs')
-          .update(repairData)
+          .update({
+            phone_id: formData.phone_id,
+            description: formData.description,
+            repair_list: formData.repair_list,
+            status: formData.status,
+            cost: formData.cost,
+          })
           .eq('id', repair.id);
 
         if (error) throw error;
-        showToast('Reparation modifiee avec succes', 'success');
       } else {
-        const { error } = await supabase.from('repairs').insert(repairData);
+        // Création
+        const { data, error } = await supabase
+          .from('repairs')
+          .insert({
+            phone_id: formData.phone_id,
+            description: formData.description,
+            repair_list: formData.repair_list,
+            status: formData.status,
+            user_id: userId!,
+            cost: formData.cost,
+            technician: null,
+            photo_url: null,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        showToast('Reparation ajoutee avec succes', 'success');
+        repairId = data.id;
       }
 
+      // 2. Sauvegarder les pièces temporaires
+      const temporaryPieces = usedPieces.filter(p => p.isTemporary);
+      
+      if (temporaryPieces.length > 0 && repairId) {
+        const piecesToInsert = temporaryPieces.map(p => ({
+          repair_id: repairId,
+          stock_piece_id: p.stock_piece_id,
+          quantity_used: p.quantity_used
+        }));
+
+        const { error: piecesError } = await supabase
+          .from('repair_parts')
+          .insert(piecesToInsert);
+
+        if (piecesError) throw piecesError;
+
+        // Mettre à jour les quantités dans stock_pieces
+        for (const piece of temporaryPieces) {
+          const { error: updateError } = await supabase.rpc(
+            'decrement_stock_quantity',
+            {
+              piece_id: piece.stock_piece_id,
+              quantity_to_remove: piece.quantity_used
+            }
+          );
+
+          // Si la fonction RPC n'existe pas, on fait manuellement
+          if (updateError) {
+            const { data: currentStock } = await supabase
+              .from('stock_pieces')
+              .select('quantity')
+              .eq('id', piece.stock_piece_id)
+              .single();
+
+            if (currentStock) {
+              await supabase
+                .from('stock_pieces')
+                .update({ quantity: currentStock.quantity - piece.quantity_used })
+                .eq('id', piece.stock_piece_id);
+            }
+          }
+        }
+      }
+
+      showToast(repair ? 'Reparation modifiee avec succes' : 'Reparation ajoutee avec succes', 'success');
       onSave();
     } catch (error: any) {
       showToast(error.message || "Erreur lors de l'enregistrement", 'error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePiecesChange = async (costChange?: number) => {
-    console.log('🔄 handlePiecesChange appelé, rechargement...');
-    await refreshCost();
-    await loadUsedPieces();
-  };
-
-  const handleRemovePiece = async (repairPartId: string) => {
-    if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('repair_parts')
-        .delete()
-        .eq('id', repairPartId);
-
-      if (error) throw error;
-      
-      showToast('Piece retiree avec succes', 'success');
-      await handlePiecesChange();
-    } catch (error: any) {
-      showToast(error.message || 'Erreur lors de la suppression', 'error');
     }
   };
 
@@ -346,18 +421,13 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                         step="0.01"
                         min="0"
                         value={formData.cost}
-                        onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all"
-                        disabled={repair?.id ? true : false}
+                        readOnly
+                        className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all cursor-not-allowed"
                       />
-                      {repair?.id && (
-                        <div className="absolute inset-0 bg-gray-900/30 rounded-xl pointer-events-none"></div>
-                      )}
+                      <div className="absolute inset-0 bg-gray-900/30 rounded-xl pointer-events-none"></div>
                     </div>
                     <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                      {repair?.id 
-                        ? '✨ Coût calculé automatiquement avec les pièces du stock'
-                        : 'Entrez le coût manuel (0 par défaut)'}
+                      ✨ Coût calculé automatiquement avec les pièces
                     </p>
                   </div>
 
@@ -398,81 +468,77 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             </div>
 
             {/* SECTION PIECES DU STOCK */}
-            {repair?.id ? (
-              <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-                    <Package className="w-4 h-4 text-white" />
-                  </div>
-                  Pieces du stock
-                </h3>
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                  <Package className="w-4 h-4 text-white" />
+                </div>
+                Pieces du stock
+              </h3>
 
-                {/* Historique des pièces utilisées */}
-                {loadingPieces ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
-                  </div>
-                ) : usedPieces.length > 0 ? (
-                  <div className="space-y-3 mb-5">
-                    {usedPieces.map((piece) => (
-                      <div 
-                        key={piece.id}
-                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900/60 to-gray-900/30 border border-violet-500/20 rounded-xl hover:border-violet-500/40 transition-all group"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                            <Package className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-white">
-                              {piece.stock_piece.name}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              Quantité: {piece.quantity_used} × {piece.stock_piece.purchase_price.toFixed(2)}€ = {(piece.quantity_used * piece.stock_piece.purchase_price).toFixed(2)}€
-                            </p>
-                          </div>
+              {/* Historique des pièces utilisées */}
+              {loadingPieces ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+                </div>
+              ) : usedPieces.length > 0 ? (
+                <div className="space-y-3 mb-5">
+                  {usedPieces.map((piece, index) => (
+                    <div 
+                      key={piece.id || `temp-${index}`}
+                      className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-900/60 to-gray-900/30 border border-violet-500/20 rounded-xl hover:border-violet-500/40 transition-all group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                          <Package className="w-5 h-5 text-white" />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePiece(piece.id)}
-                          className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                          title="Retirer cette pièce"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-white flex items-center gap-2">
+                            {piece.stock_piece.name}
+                            {piece.isTemporary && (
+                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">
+                                Non sauvegardé
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Quantité: {piece.quantity_used} × {piece.stock_piece.purchase_price.toFixed(2)}€ = {(piece.quantity_used * piece.stock_piece.purchase_price).toFixed(2)}€
+                          </p>
+                        </div>
                       </div>
-                    ))}
-                    
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/40 rounded-xl">
-                      <span className="text-sm font-bold text-violet-300 uppercase tracking-wide">Total des pièces</span>
-                      <span className="text-xl font-bold text-violet-400">
-                        {usedPieces.reduce((sum, piece) => 
-                          sum + (piece.quantity_used * piece.stock_piece.purchase_price), 0
-                        ).toFixed(2)}€
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePiece(piece, index)}
+                        className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="Retirer cette pièce"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
+                  ))}
+                  
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/40 rounded-xl">
+                    <span className="text-sm font-bold text-violet-300 uppercase tracking-wide">Total des pièces</span>
+                    <span className="text-xl font-bold text-violet-400">
+                      {usedPieces.reduce((sum, piece) => 
+                        sum + (piece.quantity_used * piece.stock_piece.purchase_price), 0
+                      ).toFixed(2)}€
+                    </span>
                   </div>
-                ) : (
-                  <div className="p-6 bg-gray-900/50 border border-violet-500/20 rounded-xl mb-5 text-center">
-                    <p className="text-sm text-gray-400">
-                      Aucune pièce du stock utilisée pour cette réparation
-                    </p>
-                  </div>
-                )}
+                </div>
+              ) : (
+                <div className="p-6 bg-gray-900/50 border border-violet-500/20 rounded-xl mb-5 text-center">
+                  <p className="text-sm text-gray-400">
+                    Aucune pièce du stock utilisée pour cette réparation
+                  </p>
+                </div>
+              )}
 
-                {/* Sélecteur pour ajouter des pièces */}
-                <StockPieceSelector 
-                  repairId={repair.id}
-                  onPiecesChange={handlePiecesChange}
-                />
-              </div>
-            ) : (
-              <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-2xl p-6">
-                <p className="text-sm text-blue-300 text-center">
-                  💡 Enregistrez d'abord la reparation pour pouvoir ajouter des pieces du stock
-                </p>
-              </div>
-            )}
+              {/* Sélecteur pour ajouter des pièces */}
+              <StockPieceSelector 
+                onAddPiece={handleAddTemporaryPiece}
+              />
+            </div>
 
             {/* BOUTONS */}
             <div className="flex gap-4 pt-2">
