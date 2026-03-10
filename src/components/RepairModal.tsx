@@ -105,13 +105,23 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         quantity_used: item.quantity_used,
         stock_piece: {
           name: item.piece_name || 'Pièce supprimée',
-          purchase_price: item.piece_price || 0
+          purchase_price: parseFloat(item.piece_price) || 0
         },
         isTemporary: false
       })) || [];
 
       console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
+      
+      // Recalculer le coût à partir des pièces chargées
+      const totalCost = transformedData.reduce(
+        (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+        0
+      );
+      
+      if (!isNaN(totalCost) && isFinite(totalCost)) {
+        setFormData(prev => ({ ...prev, cost: totalCost }));
+      }
     } catch (error) {
       console.error('❌ Erreur lors du chargement des pièces:', error);
     } finally {
@@ -140,13 +150,20 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
     setUsedPieces(newPieces);
     
-    // Calculer le coût TOTAL de toutes les pièces
+    // Calculer le coût TOTAL de toutes les pièces (temporaires ET existantes)
     const totalCost = newPieces.reduce(
-      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+      (sum, p) => sum + (p.quantity_used * (p.stock_piece.purchase_price || 0)), 
       0
     );
+    
     console.log('💰 Nouveau coût total:', totalCost);
-    setFormData(prev => ({ ...prev, cost: totalCost }));
+    
+    // Vérifier que le coût est un nombre valide
+    if (!isNaN(totalCost) && isFinite(totalCost)) {
+      setFormData(prev => ({ ...prev, cost: totalCost }));
+    } else {
+      console.error('❌ Coût invalide:', totalCost);
+    }
   };
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
@@ -205,10 +222,13 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setUsedPieces(newPieces);
 
     const newCost = newPieces.reduce(
-      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+      (sum, p) => sum + (p.quantity_used * (p.stock_piece.purchase_price || 0)), 
       0
     );
-    setFormData(prev => ({ ...prev, cost: newCost }));
+    
+    if (!isNaN(newCost) && isFinite(newCost)) {
+      setFormData(prev => ({ ...prev, cost: newCost }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -451,7 +471,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.cost}
+                        value={isNaN(formData.cost) ? 0 : formData.cost}
                         readOnly
                         className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white focus:border-violet-500 focus:outline-none transition-all cursor-not-allowed"
                       />
@@ -548,7 +568,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
                     <span className="text-sm font-bold text-violet-300 uppercase tracking-wide">Total des pièces</span>
                     <span className="text-xl font-bold text-violet-400">
                       {usedPieces.reduce((sum, piece) => 
-                        sum + (piece.quantity_used * piece.stock_piece.purchase_price), 0
+                        sum + (piece.quantity_used * (piece.stock_piece.purchase_price || 0)), 0
                       ).toFixed(2)}€
                     </span>
                   </div>
