@@ -86,17 +86,10 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     
     setLoadingPieces(true);
     try {
+      // Charger les pièces avec les colonnes piece_name et piece_price
       const { data, error } = await supabase
         .from('repair_parts')
-        .select(`
-          id,
-          stock_piece_id,
-          quantity_used,
-          stock_pieces (
-            name,
-            purchase_price
-          )
-        `)
+        .select('id, stock_piece_id, quantity_used, piece_name, piece_price')
         .eq('repair_id', repair.id);
 
       if (error) {
@@ -104,17 +97,20 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
         throw error;
       }
 
+      console.log('🔍 Données repair_parts:', data);
+
       const transformedData = data?.map((item: any) => ({
         id: item.id,
         stock_piece_id: item.stock_piece_id,
         quantity_used: item.quantity_used,
         stock_piece: {
-          name: item.stock_pieces?.name || 'Pièce supprimée',
-          purchase_price: item.stock_pieces?.purchase_price || 0
+          name: item.piece_name || 'Pièce supprimée',
+          purchase_price: item.piece_price || 0
         },
         isTemporary: false
       })) || [];
 
+      console.log('✅ Pièces transformées:', transformedData);
       setUsedPieces(transformedData);
     } catch (error) {
       console.error('❌ Erreur lors du chargement des pièces:', error);
@@ -139,18 +135,19 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-const handleAddTemporaryPiece = (piece: UsedPiece) => {
-  console.log('📝 Ajout temporaire de pièce');
-  const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
-  setUsedPieces(newPieces);
-  
-  // Calculer le coût TOTAL de toutes les pièces
-  const totalCost = newPieces.reduce(
-    (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
-    0
-  );
-  setFormData(prev => ({ ...prev, cost: totalCost }));
-};
+  const handleAddTemporaryPiece = (piece: UsedPiece) => {
+    console.log('📝 Ajout temporaire de pièce');
+    const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
+    setUsedPieces(newPieces);
+    
+    // Calculer le coût TOTAL de toutes les pièces
+    const totalCost = newPieces.reduce(
+      (sum, p) => sum + (p.quantity_used * p.stock_piece.purchase_price), 
+      0
+    );
+    console.log('💰 Nouveau coût total:', totalCost);
+    setFormData(prev => ({ ...prev, cost: totalCost }));
+  };
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
@@ -172,18 +169,16 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
 
         if (fetchError) throw fetchError;
 
-        if (!currentStock) {
-          throw new Error('Pièce de stock introuvable');
+        if (currentStock) {
+          const newQuantity = currentStock.quantity + piece.quantity_used;
+
+          const { error: updateError } = await supabase
+            .from('stock_pieces')
+            .update({ quantity: newQuantity })
+            .eq('id', piece.stock_piece_id);
+
+          if (updateError) throw updateError;
         }
-
-        const newQuantity = currentStock.quantity + piece.quantity_used;
-
-        const { error: updateError } = await supabase
-          .from('stock_pieces')
-          .update({ quantity: newQuantity })
-          .eq('id', piece.stock_piece_id);
-
-        if (updateError) throw updateError;
 
         const costReduction = piece.quantity_used * piece.stock_piece.purchase_price;
         const newCost = formData.cost - costReduction;
@@ -263,7 +258,6 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
       if (temporaryPieces.length > 0 && repairId) {
         console.log('💾 Sauvegarde de', temporaryPieces.length, 'pièces temporaires');
 
-        // Pour chaque pièce temporaire
         for (const piece of temporaryPieces) {
           // 1. Récupérer les infos AVANT de modifier le stock
           const { data: stockPiece, error: fetchError } = await supabase
@@ -284,13 +278,15 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
 
           console.log(`📦 Pièce trouvée: ${stockPiece.name}, stock: ${stockPiece.quantity}`);
 
-          // 2. Insérer dans repair_parts
+          // 2. Insérer dans repair_parts AVEC le nom et le prix
           const { error: insertError } = await supabase
             .from('repair_parts')
             .insert({
               repair_id: repairId,
               stock_piece_id: piece.stock_piece_id,
-              quantity_used: piece.quantity_used
+              quantity_used: piece.quantity_used,
+              piece_name: stockPiece.name,
+              piece_price: stockPiece.purchase_price
             });
 
           if (insertError) {
@@ -306,7 +302,6 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
           console.log(`📊 ${stockPiece.name}: ${stockPiece.quantity} → ${newQuantity}`);
 
           if (newQuantity <= 0) {
-            // Supprimer la pièce du stock
             const { error: deleteError } = await supabase
               .from('stock_pieces')
               .delete()
@@ -318,7 +313,6 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
               console.log('🗑️ Pièce supprimée du stock (quantité = 0)');
             }
           } else {
-            // Décrémenter la quantité
             const { error: updateError } = await supabase
               .from('stock_pieces')
               .update({ quantity: newQuantity })
