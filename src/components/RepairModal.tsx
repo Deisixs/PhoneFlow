@@ -63,6 +63,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   
   const phoneRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const addingPieceRef = useRef(false);
   
   const { userId } = useAuth();
   const { showToast } = useToast();
@@ -136,6 +137,14 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
   };
 
   const handleAddTemporaryPiece = (piece: UsedPiece) => {
+    // Empêcher les doubles appels
+    if (addingPieceRef.current) {
+      console.log('⚠️ Ajout déjà en cours, ignoré');
+      return;
+    }
+    
+    addingPieceRef.current = true;
+    
     console.log('📝 Ajout temporaire de pièce');
     
     // Ajouter la pièce à la liste
@@ -153,6 +162,11 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     if (!isNaN(newCost) && isFinite(newCost)) {
       setFormData(prev => ({ ...prev, cost: newCost }));
     }
+    
+    // Réinitialiser après un délai
+    setTimeout(() => {
+      addingPieceRef.current = false;
+    }, 500);
   };
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
