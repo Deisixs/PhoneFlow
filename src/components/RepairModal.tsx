@@ -135,25 +135,25 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     setShowStatusList(false);
   };
 
-const handleAddTemporaryPiece = (piece: UsedPiece) => {
-  console.log('📝 Ajout temporaire de pièce');
-  
-  // Ajouter la pièce à la liste
-  const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
-  setUsedPieces(newPieces);
-  
-  // JUSTE ajouter le coût de la nouvelle pièce (pas recalculer tout)
-  const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
-  const newCost = formData.cost + pieceCost;
-  
-  console.log('💰 Coût actuel:', formData.cost);
-  console.log('💰 Coût pièce ajoutée:', pieceCost);
-  console.log('💰 Nouveau coût total:', newCost);
-  
-  if (!isNaN(newCost) && isFinite(newCost)) {
-    setFormData(prev => ({ ...prev, cost: newCost }));
-  }
-};
+  const handleAddTemporaryPiece = (piece: UsedPiece) => {
+    console.log('📝 Ajout temporaire de pièce');
+    
+    // Ajouter la pièce à la liste
+    const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
+    setUsedPieces(newPieces);
+    
+    // JUSTE ajouter le coût de la nouvelle pièce (pas recalculer tout)
+    const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
+    const newCost = formData.cost + pieceCost;
+    
+    console.log('💰 Coût actuel:', formData.cost);
+    console.log('💰 Coût pièce ajoutée:', pieceCost);
+    console.log('💰 Nouveau coût total:', newCost);
+    
+    if (!isNaN(newCost) && isFinite(newCost)) {
+      setFormData(prev => ({ ...prev, cost: newCost }));
+    }
+  };
 
   const handleRemovePiece = async (piece: UsedPiece, index: number) => {
     if (!window.confirm('Retirer cette pièce de la réparation ?')) return;
@@ -207,13 +207,17 @@ const handleAddTemporaryPiece = (piece: UsedPiece) => {
       }
     }
 
+    // Pour pièce temporaire : soustraire au lieu de recalculer
     const newPieces = usedPieces.filter((_, i) => i !== index);
     setUsedPieces(newPieces);
 
-    const newCost = newPieces.reduce(
-      (sum, p) => sum + (p.quantity_used * (p.stock_piece.purchase_price || 0)), 
-      0
-    );
+    // Soustraire le coût de la pièce retirée
+    const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
+    const newCost = formData.cost - pieceCost;
+    
+    console.log('💰 Coût actuel:', formData.cost);
+    console.log('💰 Coût pièce retirée:', pieceCost);
+    console.log('💰 Nouveau coût:', newCost);
     
     if (!isNaN(newCost) && isFinite(newCost)) {
       setFormData(prev => ({ ...prev, cost: newCost }));
