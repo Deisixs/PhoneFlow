@@ -173,6 +173,18 @@ export const Repairs: React.FC = () => {
     }
   };
 
+  // Fonction de sauvegarde avec délai
+  const handleSave = async () => {
+    setShowModal(false);
+    setSelectedRepair(null);
+    
+    // Attendre 800ms que Supabase soit à jour
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Recharger la liste
+    await loadRepairs();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -372,11 +384,7 @@ export const Repairs: React.FC = () => {
             setShowModal(false);
             setSelectedRepair(null);
           }}
-          onSave={() => {
-            setShowModal(false);
-            setSelectedRepair(null);
-            loadRepairs();
-          }}
+          onSave={handleSave}
         />
       )}
     </div>
