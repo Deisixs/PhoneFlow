@@ -137,22 +137,21 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
 const handleAddTemporaryPiece = (piece: UsedPiece) => {
   console.log('📝 Ajout temporaire de pièce');
+  
+  // Ajouter la pièce à la liste
   const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
   setUsedPieces(newPieces);
   
-  // Ajouter le coût de la nouvelle pièce au coût actuel
+  // JUSTE ajouter le coût de la nouvelle pièce (pas recalculer tout)
   const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
   const newCost = formData.cost + pieceCost;
   
   console.log('💰 Coût actuel:', formData.cost);
-  console.log('💰 Coût pièce:', pieceCost);
+  console.log('💰 Coût pièce ajoutée:', pieceCost);
   console.log('💰 Nouveau coût total:', newCost);
   
-  // Vérifier que le coût est un nombre valide
   if (!isNaN(newCost) && isFinite(newCost)) {
     setFormData(prev => ({ ...prev, cost: newCost }));
-  } else {
-    console.error('❌ Coût invalide:', newCost);
   }
 };
 
