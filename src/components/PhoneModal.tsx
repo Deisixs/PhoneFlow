@@ -100,7 +100,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     storage: phone?.storage || '128GB',
     color: phone?.color || '',
     imei: phone?.imei || '',
-    purchase_price: phone?.purchase_price || 0,
+    purchase_price: phone?.purchase_price || null,
     purchase_date: phone?.purchase_date || today,
     battery_health: phone?.battery_health || null,
     purchase_account_id: phone?.purchase_account_id || null,
@@ -182,11 +182,19 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation : le prix d'achat est requis
+    if (formData.purchase_price === null || formData.purchase_price === 0) {
+      showToast('Le prix d\'achat est requis', 'error');
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const phoneData = {
         ...formData,
+        purchase_price: formData.purchase_price || 0,
         user_id: userId!,
         condition: 'Non spécifié',
         qr_code: phone?.id ? (phone.qr_code || null) : generateQRCode('', formData.imei),
@@ -379,24 +387,18 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={formData.purchase_price.toString().replace('.', ',')}
+                    value={formData.purchase_price !== null ? formData.purchase_price.toString().replace('.', ',') : ''}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Accepter virgule ET point
+                      if (value === '') {
+                        setFormData({ ...formData, purchase_price: null });
+                        return;
+                      }
                       const cleaned = value.replace(/[^\d,\.]/g, '');
-                      // Remplacer virgule par point pour le stockage
                       const withDot = cleaned.replace(',', '.');
                       const parsed = parseFloat(withDot);
-                      setFormData({ ...formData, purchase_price: isNaN(parsed) ? 0 : parsed });
+                      setFormData({ ...formData, purchase_price: isNaN(parsed) ? null : parsed });
                     }}
-                    onKeyDown={(e) => {
-                      // Accepter les touches: chiffres, virgule, point, backspace, delete, tab, flèches
-                      const allowed = ['0','1','2','3','4','5','6','7','8','9',',','.','Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
-                      if (!allowed.includes(e.key)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    required
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
                     placeholder="999,00"
                   />
@@ -531,16 +533,14 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                       value={formData.sale_price !== null ? formData.sale_price.toString().replace('.', ',') : ''}
                       onChange={(e) => {
                         const value = e.target.value;
+                        if (value === '') {
+                          setFormData({ ...formData, sale_price: null });
+                          return;
+                        }
                         const cleaned = value.replace(/[^\d,\.]/g, '');
                         const withDot = cleaned.replace(',', '.');
                         const parsed = parseFloat(withDot);
                         setFormData({ ...formData, sale_price: isNaN(parsed) ? null : parsed });
-                      }}
-                      onKeyDown={(e) => {
-                        const allowed = ['0','1','2','3','4','5','6','7','8','9',',','.','Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
-                        if (!allowed.includes(e.key)) {
-                          e.preventDefault();
-                        }
                       }}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
                       placeholder="1199,00"
