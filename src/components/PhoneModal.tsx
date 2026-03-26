@@ -378,29 +378,27 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Prix d'achat - CORRIGÉ */}
+                {/* Prix d'achat - SIMPLE avec type="number" */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
                     Prix d'achat (€)
                   </label>
                   <input
-                    type="text"
-                    inputMode="decimal"
-                    value={formData.purchase_price !== null ? formData.purchase_price.toString().replace('.', ',') : ''}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.purchase_price || ''}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value === '') {
-                        setFormData({ ...formData, purchase_price: null });
-                        return;
-                      }
-                      const cleaned = value.replace(/[^\d,\.]/g, '');
-                      const withDot = cleaned.replace(',', '.');
-                      const parsed = parseFloat(withDot);
-                      setFormData({ ...formData, purchase_price: isNaN(parsed) ? null : parsed });
+                      setFormData({ 
+                        ...formData, 
+                        purchase_price: value ? parseFloat(value) : null 
+                      });
                     }}
+                    required
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
-                    placeholder="999,00"
+                    placeholder="999.00"
                   />
                 </div>
 
@@ -522,28 +520,25 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
               {formData.is_sold && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 animate-slide-down">
-                  {/* Prix de vente - CORRIGÉ */}
+                  {/* Prix de vente - SIMPLE avec type="number" */}
                   <div>
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Prix de vente (€)
                     </label>
                     <input
-                      type="text"
-                      inputMode="decimal"
-                      value={formData.sale_price !== null ? formData.sale_price.toString().replace('.', ',') : ''}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.sale_price || ''}
                       onChange={(e) => {
                         const value = e.target.value;
-                        if (value === '') {
-                          setFormData({ ...formData, sale_price: null });
-                          return;
-                        }
-                        const cleaned = value.replace(/[^\d,\.]/g, '');
-                        const withDot = cleaned.replace(',', '.');
-                        const parsed = parseFloat(withDot);
-                        setFormData({ ...formData, sale_price: isNaN(parsed) ? null : parsed });
+                        setFormData({ 
+                          ...formData, 
+                          sale_price: value ? parseFloat(value) : null 
+                        });
                       }}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
-                      placeholder="1199,00"
+                      placeholder="1199.00"
                     />
                   </div>
 
