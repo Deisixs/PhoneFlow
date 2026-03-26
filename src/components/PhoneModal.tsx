@@ -92,20 +92,6 @@ const IPHONE_MODELS = [
   'iPhone 11',
 ];
 
-// ---- GESTION VIRGULE / POINT ---- //
-const parsePriceInput = (val: string) => {
-  if (!val.trim()) return "";
-  val = val.replace(",", ".");
-  const parsed = parseFloat(val);
-  return isNaN(parsed) ? "" : parsed;
-};
-
-const formatPriceDisplay = (n: number | null) => {
-  if (n === null || n === undefined) return "";
-  return n.toString().replace(".", ",");
-};
-// -------------------------------- //
-
 export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose, onSave }) => {
   const today = new Date().toISOString().split('T')[0];
   
@@ -384,7 +370,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Prix d'achat */}
+                {/* Prix d'achat - CORRIGÉ */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
@@ -393,10 +379,22 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={formatPriceDisplay(formData.purchase_price)}
+                    value={formData.purchase_price.toString().replace('.', ',')}
                     onChange={(e) => {
-                      const parsed = parsePriceInput(e.target.value);
-                      setFormData({ ...formData, purchase_price: parsed === "" ? 0 : parsed });
+                      const value = e.target.value;
+                      // Accepter virgule ET point
+                      const cleaned = value.replace(/[^\d,\.]/g, '');
+                      // Remplacer virgule par point pour le stockage
+                      const withDot = cleaned.replace(',', '.');
+                      const parsed = parseFloat(withDot);
+                      setFormData({ ...formData, purchase_price: isNaN(parsed) ? 0 : parsed });
+                    }}
+                    onKeyDown={(e) => {
+                      // Accepter les touches: chiffres, virgule, point, backspace, delete, tab, flèches
+                      const allowed = ['0','1','2','3','4','5','6','7','8','9',',','.','Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+                      if (!allowed.includes(e.key)) {
+                        e.preventDefault();
+                      }
                     }}
                     required
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
@@ -522,7 +520,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
               {formData.is_sold && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 animate-slide-down">
-                  {/* Prix de vente */}
+                  {/* Prix de vente - CORRIGÉ */}
                   <div>
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Prix de vente (€)
@@ -530,10 +528,19 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     <input
                       type="text"
                       inputMode="decimal"
-                      value={formatPriceDisplay(formData.sale_price)}
+                      value={formData.sale_price !== null ? formData.sale_price.toString().replace('.', ',') : ''}
                       onChange={(e) => {
-                        const parsed = parsePriceInput(e.target.value);
-                        setFormData({ ...formData, sale_price: parsed === "" ? null : parsed });
+                        const value = e.target.value;
+                        const cleaned = value.replace(/[^\d,\.]/g, '');
+                        const withDot = cleaned.replace(',', '.');
+                        const parsed = parseFloat(withDot);
+                        setFormData({ ...formData, sale_price: isNaN(parsed) ? null : parsed });
+                      }}
+                      onKeyDown={(e) => {
+                        const allowed = ['0','1','2','3','4','5','6','7','8','9',',','.','Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+                        if (!allowed.includes(e.key)) {
+                          e.preventDefault();
+                        }
                       }}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
                       placeholder="1199,00"
