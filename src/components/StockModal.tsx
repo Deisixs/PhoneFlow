@@ -28,9 +28,15 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
     supplier_link: ""
   });
 
+  const [priceTTC, setPriceTTC] = useState<number | null>(null);
+  const [priceHT, setPriceHT] = useState<number | null>(null);
+
   useEffect(() => {
     if (piece) {
       setFormData(piece);
+      // Initialiser avec le prix TTC de la pièce
+      setPriceTTC(piece.purchase_price);
+      setPriceHT(piece.purchase_price / 1.20);
     } else {
       setFormData({
         name: "",
@@ -40,10 +46,48 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
         supplier: "",
         supplier_link: ""
       });
+      setPriceTTC(null);
+      setPriceHT(null);
     }
   }, [piece, isOpen]);
 
   if (!isOpen) return null;
+
+  // Calcul automatique TTC → HT
+  const handleTTCChange = (value: string) => {
+    if (value === '') {
+      setPriceTTC(null);
+      setPriceHT(null);
+      setFormData({ ...formData, purchase_price: 0 });
+      return;
+    }
+
+    const ttc = parseFloat(value);
+    if (isNaN(ttc)) return;
+
+    setPriceTTC(ttc);
+    const ht = ttc / 1.20;
+    setPriceHT(ht);
+    setFormData({ ...formData, purchase_price: ttc });
+  };
+
+  // Calcul automatique HT → TTC
+  const handleHTChange = (value: string) => {
+    if (value === '') {
+      setPriceTTC(null);
+      setPriceHT(null);
+      setFormData({ ...formData, purchase_price: 0 });
+      return;
+    }
+
+    const ht = parseFloat(value);
+    if (isNaN(ht)) return;
+
+    setPriceHT(ht);
+    const ttc = ht * 1.20;
+    setPriceTTC(ttc);
+    setFormData({ ...formData, purchase_price: ttc });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +100,7 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto 
       bg-neutral-900/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
 
-        {/* HEADER IDENTIQUE À PHONEMODAL */}
+        {/* HEADER */}
         <div className="sticky top-0 z-10 bg-neutral-900/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
             {piece ? "Modifier une pièce" : "Ajouter une pièce"}
@@ -97,33 +141,78 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
             />
           </div>
 
-          {/* Prix + Quantité */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-300 mb-1 block">Prix d'achat (€) *</label>
-              <input
-                type="number"
-                value={formData.purchase_price}
-                onChange={(e) =>
-                  setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })
-                }
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              />
+          {/* Prix TTC et HT avec calcul automatique */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="h-px flex-1 bg-white/10"></div>
+              <span>Remplissez l'un des deux champs</span>
+              <div className="h-px flex-1 bg-white/10"></div>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-300 mb-1 block">Quantité *</label>
-              <input
-                type="number"
-                value={formData.quantity}
-                onChange={(e) =>
-                  setFormData({ ...formData, quantity: parseInt(e.target.value) })
-                }
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
-                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Prix TTC */}
+              <div>
+                <label className="text-sm text-gray-300 mb-1 block">
+                  Prix TTC (€) *
+                  <span className="text-xs text-gray-500 ml-2">(Toutes Taxes Comprises)</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={priceTTC !== null ? priceTTC : ''}
+                  onChange={(e) => handleTTCChange(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
+                  text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Prix HT */}
+              <div>
+                <label className="text-sm text-gray-300 mb-1 block">
+                  Prix HT (€)
+                  <span className="text-xs text-gray-500 ml-2">(Hors Taxe)</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={priceHT !== null ? priceHT.toFixed(2) : ''}
+                  onChange={(e) => handleHTChange(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
+                  text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                  placeholder="0.00"
+                />
+              </div>
             </div>
+
+            {/* Affichage de la TVA */}
+            {priceTTC !== null && priceHT !== null && (
+              <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-300">TVA (20%)</span>
+                  <span className="font-semibold text-violet-400">
+                    {(priceTTC - priceHT).toFixed(2)}€
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quantité */}
+          <div>
+            <label className="text-sm text-gray-300 mb-1 block">Quantité *</label>
+            <input
+              type="number"
+              value={formData.quantity}
+              onChange={(e) =>
+                setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })
+              }
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
+              text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+              placeholder="0"
+            />
           </div>
 
           {/* Fournisseur */}
