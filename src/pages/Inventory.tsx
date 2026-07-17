@@ -31,6 +31,7 @@ interface Repair {
   id: string;
   phone_id: string;
   status: string;
+  cost: number;
 }
 
 interface PurchaseAccount {
@@ -87,7 +88,7 @@ export const Inventory: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('repairs')
-        .select('id, phone_id, status')
+        .select('id, phone_id, status, cost')
         .eq('user_id', userId!);
 
       if (error) throw error;
@@ -112,6 +113,20 @@ export const Inventory: React.FC = () => {
     const hasActiveRepair = phoneRepairs.some((r) => r.status !== 'completed');
     if (hasActiveRepair) return 'repair';
     return 'available';
+  };
+
+  // Calcule le total des coûts de réparation pour un téléphone
+  const getTotalRepairCost = (phoneId: string) => {
+    return repairs
+      .filter((r) => r.phone_id === phoneId)
+      .reduce((sum, r) => sum + (r.cost || 0), 0);
+  };
+
+  // Calcule le bénéfice net pour un téléphone vendu
+  const getNetProfit = (phone: Phone) => {
+    if (!phone.is_sold || phone.sale_price === null) return null;
+    const totalRepairs = getTotalRepairCost(phone.id);
+    return phone.sale_price - phone.purchase_price - totalRepairs;
   };
 
   const getStatusBadge = (status: string) => {
@@ -222,6 +237,7 @@ export const Inventory: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPhones.map((phone) => {
           const status = getPhoneStatus(phone);
+          const netProfit = getNetProfit(phone);
           return (
             <div key={phone.id} className="bg-[#1a1425] border border-white/5 rounded-2xl p-6 hover:border-violet-500/30 transition-all group shadow-xl">
               <div className="flex items-start justify-between mb-6">
@@ -250,7 +266,19 @@ export const Inventory: React.FC = () => {
                   <span className="text-sm text-white font-bold">{phone.purchase_price}€</span>
                 </div>
 
-                {/* SECTION NOTE AJOUTÉE ICI */}
+                {/* BÉNÉFICE NET - Affiché seulement si vendu */}
+                {netProfit !== null && (
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <span className="opacity-50">$</span> Bénéfice
+                    </span>
+                    <span className={`text-sm font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)}€
+                    </span>
+                  </div>
+                )}
+
+                {/* SECTION NOTE */}
                 {phone.notes && (
                   <div className="flex flex-col gap-1 py-1">
                     <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Note</span>
