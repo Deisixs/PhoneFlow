@@ -129,14 +129,13 @@ export const Inventory: React.FC = () => {
     return phone.sale_price - phone.purchase_price - totalRepairs;
   };
 
-  // Calcule le pourcentage de bénéfice (ROI) par rapport au coût total investi
+  // Calcule la marge sur le prix de vente (CA) — celle qui compte pour le seuil micro-entreprise
+  // Marge (%) = Bénéfice net / Prix de vente × 100
   const getProfitPercentage = (phone: Phone) => {
-    if (!phone.is_sold || phone.sale_price === null) return null;
+    if (!phone.is_sold || phone.sale_price === null || phone.sale_price === 0) return null;
     const totalRepairs = getTotalRepairCost(phone.id);
-    const totalInvested = phone.purchase_price + totalRepairs;
-    if (totalInvested === 0) return null;
-    const profit = phone.sale_price - totalInvested;
-    return (profit / totalInvested) * 100;
+    const profit = phone.sale_price - phone.purchase_price - totalRepairs;
+    return (profit / phone.sale_price) * 100;
   };
 
   const getStatusBadge = (status: string) => {
