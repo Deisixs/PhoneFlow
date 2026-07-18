@@ -129,6 +129,16 @@ export const Inventory: React.FC = () => {
     return phone.sale_price - phone.purchase_price - totalRepairs;
   };
 
+  // Calcule le pourcentage de bénéfice (ROI) par rapport au coût total investi
+  const getProfitPercentage = (phone: Phone) => {
+    if (!phone.is_sold || phone.sale_price === null) return null;
+    const totalRepairs = getTotalRepairCost(phone.id);
+    const totalInvested = phone.purchase_price + totalRepairs;
+    if (totalInvested === 0) return null;
+    const profit = phone.sale_price - totalInvested;
+    return (profit / totalInvested) * 100;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'sold':
@@ -238,6 +248,7 @@ export const Inventory: React.FC = () => {
         {filteredPhones.map((phone) => {
           const status = getPhoneStatus(phone);
           const netProfit = getNetProfit(phone);
+          const profitPercentage = getProfitPercentage(phone);
           return (
             <div key={phone.id} className="bg-[#1a1425] border border-white/5 rounded-2xl p-6 hover:border-violet-500/30 transition-all group shadow-xl">
               <div className="flex items-start justify-between mb-6">
@@ -266,14 +277,17 @@ export const Inventory: React.FC = () => {
                   <span className="text-sm text-white font-bold">{phone.purchase_price}€</span>
                 </div>
 
-                {/* BÉNÉFICE NET - Affiché seulement si vendu */}
-                {netProfit !== null && (
+                {/* BÉNÉFICE NET + POURCENTAGE - Affiché seulement si vendu */}
+                {netProfit !== null && profitPercentage !== null && (
                   <div className="flex justify-between items-center py-2 border-b border-white/5">
                     <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
                       <span className="opacity-50">$</span> Bénéfice
                     </span>
-                    <span className={`text-sm font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`text-sm font-bold flex items-center gap-2 ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)}€
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${netProfit >= 0 ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                        {profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%
+                      </span>
                     </span>
                   </div>
                 )}
