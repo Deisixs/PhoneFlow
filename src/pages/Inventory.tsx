@@ -28,6 +28,7 @@ interface Phone {
   created_at: string;
   archived: boolean;
   battery_health: number | null;
+  parts_purchased: string;
 }
 
 interface Repair {
@@ -364,6 +365,16 @@ export const Inventory: React.FC = () => {
                         {profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%
                       </span>
                     </span>
+                  </div>
+                )}
+
+                {/* SECTION ACHAT PIÈCES */}
+                {phone.parts_purchased && (
+                  <div className="flex flex-col gap-1 py-1">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Achat pièces</span>
+                    <p className="text-[11px] text-gray-400 italic bg-white/5 p-2 rounded-lg border border-white/5 line-clamp-2">
+                      {phone.parts_purchased}
+                    </p>
                   </div>
                 )}
 
