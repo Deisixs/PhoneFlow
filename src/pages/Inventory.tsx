@@ -27,6 +27,7 @@ interface Phone {
   qr_code: string | null;
   created_at: string;
   archived: boolean;
+  battery_health: number | null;
 }
 
 interface Repair {
@@ -324,7 +325,10 @@ export const Inventory: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white leading-none mb-1">{phone.model}</h3>
-                    <p className="text-sm text-gray-500">{phone.storage} • {phone.color}</p>
+                    <p className="text-sm text-gray-500">
+                      {phone.storage} • {phone.color}
+                      {phone.battery_health !== null && ` • 🔋 ${phone.battery_health}%`}
+                    </p>
                   </div>
                 </div>
                 {renderStatusToggle(phone, status)}
@@ -341,6 +345,15 @@ export const Inventory: React.FC = () => {
                     <span className="opacity-50">$</span> Achat
                   </span>
                   <span className="text-sm text-white font-bold">{phone.purchase_price}€</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+                    Date d'achat
+                  </span>
+                  <span className="text-sm text-gray-300">
+                    {new Date(phone.purchase_date).toLocaleDateString('fr-FR')}
+                  </span>
                 </div>
 
                 {/* BÉNÉFICE NET + POURCENTAGE - Affiché seulement si vendu */}
