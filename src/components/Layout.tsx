@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
+import { StickyNote } from './StickyNote';
 
 interface LayoutProps {
   children: ReactNode;
@@ -141,6 +142,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </main>
 
       </div>
+
+      <StickyNote />
     </div>
   );
 };
