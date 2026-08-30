@@ -56,37 +56,26 @@ const COLOR_OPTIONS = [
 ];
 
 const IPHONE_MODELS = [
-  // iPhone 16 (2024)
   'iPhone 16 Pro Max',
   'iPhone 16 Pro',
   'iPhone 16 Plus',
   'iPhone 16',
-  
-  // iPhone 15 (2023)
   'iPhone 15 Pro Max',
   'iPhone 15 Pro',
   'iPhone 15 Plus',
   'iPhone 15',
-  
-  // iPhone 14 (2022)
   'iPhone 14 Pro Max',
   'iPhone 14 Pro',
   'iPhone 14 Plus',
   'iPhone 14',
-  
-  // iPhone 13 (2021)
   'iPhone 13 Pro Max',
   'iPhone 13 Pro',
   'iPhone 13',
   'iPhone 13 mini',
-  
-  // iPhone 12 (2020)
   'iPhone 12 Pro Max',
   'iPhone 12 Pro',
   'iPhone 12',
   'iPhone 12 mini',
-  
-  // iPhone 11 (2019)
   'iPhone 11 Pro Max',
   'iPhone 11 Pro',
   'iPhone 11',
@@ -118,7 +107,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   const [modelSearch, setModelSearch] = useState(phone?.model || '');
   const [colorSearch, setColorSearch] = useState(phone?.color || '');
   
-  // Refs pour détecter les clics en dehors
   const modelRef = useRef<HTMLDivElement>(null);
   const storageRef = useRef<HTMLDivElement>(null);
   const colorRef = useRef<HTMLDivElement>(null);
@@ -127,7 +115,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   const { userId } = useAuth();
   const { showToast } = useToast();
 
-  // Fermer les dropdowns si on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modelRef.current && !modelRef.current.contains(event.target as Node)) {
@@ -148,12 +135,10 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filtrer les modèles selon la recherche
   const filteredModels = IPHONE_MODELS.filter(model =>
     model.toLowerCase().includes(modelSearch.toLowerCase())
   );
 
-  // Filtrer les couleurs selon la recherche
   const filteredColors = COLOR_OPTIONS.filter(color =>
     color.toLowerCase().includes(colorSearch.toLowerCase())
   );
@@ -183,7 +168,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation : le prix d'achat est requis
     if (formData.purchase_price === null || formData.purchase_price === 0) {
       showToast('Le prix d\'achat est requis', 'error');
       return;
@@ -227,13 +211,10 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
       <div className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
         
-        {/* Background gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-fuchsia-500/10 pointer-events-none"></div>
         
-        {/* Content */}
         <div className="relative bg-gray-900/95 backdrop-blur-xl border border-violet-500/20 rounded-3xl overflow-hidden">
 
-          {/* HEADER avec gradient */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 px-6 py-5 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
@@ -251,14 +232,11 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
             </button>
           </div>
 
-          {/* Scrollable content */}
           <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-5rem)] p-6 space-y-5">
 
-            {/* SECTION PRINCIPALE */}
             <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                {/* Modèle avec auto-complétion */}
                 <div ref={modelRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Modèle
@@ -278,7 +256,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     autoComplete="off"
                   />
                   
-                  {/* Liste déroulante modèles */}
                   {showModelList && filteredModels.length > 0 && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       {filteredModels.map((model, index) => (
@@ -294,7 +271,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   )}
                 </div>
 
-                {/* Stockage avec dropdown */}
                 <div ref={storageRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Stockage
@@ -307,7 +283,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     {formData.storage}
                   </button>
                   
-                  {/* Liste déroulante stockage */}
                   {showStorageList && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       {STORAGE_OPTIONS.map((storage, index) => (
@@ -327,7 +302,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   )}
                 </div>
 
-                {/* Couleur avec auto-complétion */}
                 <div ref={colorRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                     Couleur
@@ -347,7 +321,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     autoComplete="off"
                   />
                   
-                  {/* Liste déroulante couleurs */}
                   {showColorList && filteredColors.length > 0 && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       {filteredColors.map((color, index) => (
@@ -363,22 +336,20 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   )}
                 </div>
 
-                {/* IMEI */}
+                {/* IMEI - Optionnel */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
-                    IMEI
+                    IMEI <span className="text-gray-500 normal-case font-normal">(optionnel)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.imei}
                     onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
-                    required
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all font-mono"
                     placeholder="123456789012345"
                   />
                 </div>
 
-                {/* Prix d'achat - SIMPLE avec type="number" */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
@@ -402,7 +373,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Date d'achat */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
@@ -417,7 +387,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Santé de la batterie */}
                 <div>
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Battery className="w-4 h-4" />
@@ -437,7 +406,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   />
                 </div>
 
-                {/* Compte d'achat avec dropdown */}
                 <div ref={accountRef} className="relative">
                   <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide flex items-center gap-2">
                     <Package className="w-4 h-4" />
@@ -453,7 +421,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                       : 'Aucun / Non spécifié'}
                   </button>
                   
-                  {/* Liste déroulante comptes */}
                   {showAccountList && (
                     <div className="absolute z-20 w-full mt-2 max-h-60 overflow-y-auto bg-gray-900 border border-violet-500/30 rounded-xl shadow-2xl shadow-violet-500/20">
                       <div
@@ -485,7 +452,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
               </div>
 
-              {/* Notes */}
               <div className="mt-5">
                 <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                   Notes
@@ -500,7 +466,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               </div>
             </div>
 
-            {/* SECTION VENTE */}
             <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -520,7 +485,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
 
               {formData.is_sold && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 animate-slide-down">
-                  {/* Prix de vente - SIMPLE avec type="number" */}
                   <div>
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Prix de vente (€)
@@ -542,7 +506,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                     />
                   </div>
 
-                  {/* Date de vente */}
                   <div>
                     <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
                       Date de vente
@@ -558,7 +521,6 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
               )}
             </div>
 
-            {/* BOUTONS */}
             <div className="flex gap-4 pt-2">
               <button
                 type="button"
