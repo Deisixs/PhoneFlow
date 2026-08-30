@@ -402,7 +402,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                       battery_health: e.target.value ? parseInt(e.target.value) : null 
                     })}
                     className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
-                    placeholder="100"
+                    placeholder="Inconnu"
                   />
                 </div>
 
