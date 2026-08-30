@@ -69,12 +69,12 @@ export const StickyNote: React.FC = () => {
   const hasContent = content.trim().length > 0;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100]">
+    <div className="fixed bottom-20 right-6 z-[100]">
       {isOpen ? (
-        <div className="w-72 bg-yellow-100 rounded-xl shadow-2xl shadow-black/50 border border-yellow-200 overflow-hidden animate-fade-in flex flex-col">
+        <div className="w-72 backdrop-blur-xl bg-gray-900/95 rounded-xl shadow-2xl shadow-black/50 border border-violet-500/20 overflow-hidden animate-fade-in flex flex-col">
           {/* Header du post-it */}
-          <div className="flex items-center justify-between px-3 py-2 bg-yellow-200/60 border-b border-yellow-300/50">
-            <span className="text-xs font-bold text-yellow-900/70 uppercase tracking-wide flex items-center gap-1.5">
+          <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 border-b border-violet-500/20">
+            <span className="text-xs font-bold text-violet-300 uppercase tracking-wide flex items-center gap-1.5">
               <StickyNoteIcon size={14} />
               Pense-bête
             </span>
@@ -83,14 +83,14 @@ export const StickyNote: React.FC = () => {
                 onClick={handleDelete}
                 disabled={!hasContent}
                 title="Effacer"
-                className="p-1 rounded text-yellow-900/50 hover:text-red-600 hover:bg-yellow-300/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 rounded text-gray-400 hover:text-red-400 hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Trash2 size={14} />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
                 title="Replier"
-                className="p-1 rounded text-yellow-900/50 hover:text-yellow-900 hover:bg-yellow-300/50 transition-all"
+                className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/10 transition-all"
               >
                 <X size={14} />
               </button>
@@ -103,23 +103,22 @@ export const StickyNote: React.FC = () => {
             placeholder="Écris ce que tu veux ici..."
             rows={8}
             autoFocus
-            className="w-full p-3 bg-transparent text-yellow-950 placeholder-yellow-800/40 text-sm resize-none focus:outline-none font-medium leading-relaxed"
-            style={{ fontFamily: "'Comic Sans MS', 'Segoe Print', cursive" }}
+            className="w-full p-3 bg-transparent text-white placeholder-gray-500 text-sm resize-none focus:outline-none leading-relaxed"
           />
         </div>
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className={`relative w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transition-all hover:scale-105 ${
+          className={`relative w-12 h-12 rounded-xl shadow-lg flex items-center justify-center transition-all hover:scale-105 backdrop-blur-xl border ${
             hasContent
-              ? 'bg-yellow-300 shadow-yellow-500/30'
-              : 'bg-white/10 backdrop-blur-xl border border-white/10 hover:bg-white/20'
+              ? 'bg-gradient-to-br from-violet-600/30 to-fuchsia-600/30 border-violet-500/40 shadow-violet-500/20'
+              : 'bg-white/5 border-white/10 hover:bg-white/10'
           }`}
           title="Pense-bête"
         >
-          <StickyNoteIcon size={20} className={hasContent ? 'text-yellow-900' : 'text-gray-300'} />
+          <StickyNoteIcon size={20} className={hasContent ? 'text-violet-300' : 'text-gray-400'} />
           {hasContent && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-violet-500 rounded-full border-2 border-black" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-fuchsia-500 rounded-full border-2 border-gray-900" />
           )}
         </button>
       )}
