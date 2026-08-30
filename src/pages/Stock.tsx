@@ -22,11 +22,11 @@ type SeriesFilter = 'all' | 'iphone-15' | 'iphone-14' | 'iphone-13' | 'iphone-12
 
 const SERIES_CONFIG = [
   { id: 'all' as SeriesFilter, label: 'Tous', icon: '📱', pattern: null },
-  { id: 'iphone-15' as SeriesFilter, label: 'iPhone 15', icon: '🟣', pattern: /iphone 15/i },
-  { id: 'iphone-14' as SeriesFilter, label: 'iPhone 14', icon: '🔵', pattern: /iphone 14/i },
-  { id: 'iphone-13' as SeriesFilter, label: 'iPhone 13', icon: '🟢', pattern: /iphone 13/i },
-  { id: 'iphone-12' as SeriesFilter, label: 'iPhone 12', icon: '🔴', pattern: /iphone 12/i },
-  { id: 'iphone-11' as SeriesFilter, label: 'iPhone 11', icon: '🟡', pattern: /iphone 11/i },
+  { id: 'iphone-15' as SeriesFilter, label: 'iPhone 15', icon: '🟣', pattern: /\b15\b/i },
+  { id: 'iphone-14' as SeriesFilter, label: 'iPhone 14', icon: '🔵', pattern: /\b14\b/i },
+  { id: 'iphone-13' as SeriesFilter, label: 'iPhone 13', icon: '🟢', pattern: /\b13\b/i },
+  { id: 'iphone-12' as SeriesFilter, label: 'iPhone 12', icon: '🔴', pattern: /\b12\b/i },
+  { id: 'iphone-11' as SeriesFilter, label: 'iPhone 11', icon: '🟡', pattern: /\b11\b/i },
   { id: 'autres' as SeriesFilter, label: 'Autres', icon: '⚪', pattern: null },
 ];
 
