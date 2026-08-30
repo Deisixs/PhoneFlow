@@ -326,8 +326,7 @@ export const Inventory: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-bold text-white leading-none mb-1">{phone.model}</h3>
                     <p className="text-sm text-gray-500">
-                      {phone.storage} • {phone.color}
-                      {phone.battery_health !== null && ` • 🔋 ${phone.battery_health}%`}
+                      {phone.storage} • {phone.color} • 🔋 {phone.battery_health !== null ? `${phone.battery_health}%` : 'Inconnu'}
                     </p>
                   </div>
                 </div>
