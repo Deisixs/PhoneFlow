@@ -311,21 +311,21 @@ export const Inventory: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPhones.map((phone) => {
           const status = getPhoneStatus(phone);
           const netProfit = getNetProfit(phone);
           const profitPercentage = getProfitPercentage(phone);
           return (
-            <div key={phone.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300 group">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 bg-violet-600/20 rounded-lg flex items-center justify-center text-violet-400 shrink-0">
-                    <Edit size={16} />
+            <div key={phone.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-violet-600/20 rounded-lg flex items-center justify-center text-violet-400">
+                    <Edit size={20} />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-white leading-none mb-1 truncate">{phone.model}</h3>
-                    <p className="text-xs text-gray-500 truncate">
+                  <div>
+                    <h3 className="text-lg font-bold text-white leading-none mb-1">{phone.model}</h3>
+                    <p className="text-sm text-gray-500">
                       {phone.storage} • {phone.color} • 🔋 {phone.battery_health !== null ? `${phone.battery_health}%` : 'Inconnu'}
                     </p>
                   </div>
@@ -333,34 +333,37 @@ export const Inventory: React.FC = () => {
                 {renderStatusToggle(phone, status)}
               </div>
 
-              {/* IMEI / Achat / Date sur une seule ligne */}
-              <div className="grid grid-cols-3 gap-2 py-3 border-y border-white/5 mb-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">IMEI</p>
-                  <p className="text-xs text-gray-300 font-mono truncate">{phone.imei || '—'}</p>
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">IMEI</span>
+                  <span className="text-sm text-gray-300 font-mono">{phone.imei}</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Achat</p>
-                  <p className="text-xs text-white font-bold truncate">{phone.purchase_price}€</p>
+                
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <span className="opacity-50">$</span> Achat
+                  </span>
+                  <span className="text-sm text-white font-bold">{phone.purchase_price}€</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Date</p>
-                  <p className="text-xs text-gray-300 truncate">
-                    {new Date(phone.purchase_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-2 mb-4">
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+                    Date d'achat
+                  </span>
+                  <span className="text-sm text-gray-300">
+                    {new Date(phone.purchase_date).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+
                 {/* BÉNÉFICE NET + POURCENTAGE - Affiché seulement si vendu */}
                 {netProfit !== null && profitPercentage !== null && (
-                  <div className="flex justify-between items-center py-1.5 border-b border-white/5">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
+                  <div className="flex justify-between items-center py-2 border-b border-white/5">
+                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold flex items-center gap-1">
                       <span className="opacity-50">$</span> Bénéfice
                     </span>
-                    <span className={`text-xs font-bold flex items-center gap-1.5 ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`text-sm font-bold flex items-center gap-2 ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)}€
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${netProfit >= 0 ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${netProfit >= 0 ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
                         {profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%
                       </span>
                     </span>
@@ -372,25 +375,24 @@ export const Inventory: React.FC = () => {
                   <div className="flex flex-col gap-1 py-1">
                     <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Note</span>
                     <p className="text-xs text-gray-400 italic bg-white/5 p-2 rounded-lg border border-white/5">
-                      <p className="text-[11px] text-gray-400 italic bg-white/5 p-2 rounded-lg border border-white/5 line-clamp-2">
                       {phone.notes}
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-4 gap-1.5">
-                <button onClick={() => { setSelectedPhone(phone); setShowDetailModal(true); }} className="p-2 bg-violet-600/10 text-violet-400 rounded-lg hover:bg-violet-600 hover:text-white transition-all flex items-center justify-center">
-                  <Eye size={15} />
+              <div className="grid grid-cols-4 gap-2">
+                <button onClick={() => { setSelectedPhone(phone); setShowDetailModal(true); }} className="p-2.5 bg-violet-600/10 text-violet-400 rounded-xl hover:bg-violet-600 hover:text-white transition-all flex items-center justify-center">
+                  <Eye size={18} />
                 </button>
-                <button onClick={() => { setSelectedPhone(phone); setShowModal(true); }} className="p-2 bg-blue-600/10 text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center">
-                  <Edit size={15} />
+                <button onClick={() => { setSelectedPhone(phone); setShowModal(true); }} className="p-2.5 bg-blue-600/10 text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center">
+                  <Edit size={18} />
                 </button>
-                <button onClick={() => handleArchiveToggle(phone)} className="p-2 bg-yellow-600/10 text-yellow-400 rounded-lg hover:bg-yellow-600 hover:text-white transition-all flex items-center justify-center disabled:opacity-30" disabled={!phone.archived && !phone.is_sold}>
-                  <Archive size={15} />
+                <button onClick={() => handleArchiveToggle(phone)} className="p-2.5 bg-yellow-600/10 text-yellow-400 rounded-xl hover:bg-yellow-600 hover:text-white transition-all flex items-center justify-center disabled:opacity-30" disabled={!phone.archived && !phone.is_sold}>
+                  <Archive size={18} />
                 </button>
-                <button onClick={() => handleDelete(phone.id)} className="p-2 bg-red-600/10 text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition-all flex items-center justify-center">
-                  <Trash2 size={15} />
+                <button onClick={() => handleDelete(phone.id)} className="p-2.5 bg-red-600/10 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all flex items-center justify-center">
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
