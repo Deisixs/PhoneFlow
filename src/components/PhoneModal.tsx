@@ -21,6 +21,7 @@ interface Phone {
   is_sold: boolean;
   qr_code: string | null;
   battery_health: number | null;
+  parts_purchased: string;
 }
 
 interface PurchaseAccount {
@@ -94,6 +95,7 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
     battery_health: phone?.battery_health || null,
     purchase_account_id: phone?.purchase_account_id || null,
     notes: phone?.notes || '',
+    parts_purchased: phone?.parts_purchased || '',
     sale_price: phone?.sale_price || null,
     sale_date: phone?.sale_date || null,
     is_sold: phone?.is_sold || false,
@@ -450,6 +452,19 @@ export const PhoneModal: React.FC<PhoneModalProps> = ({ phone, accounts, onClose
                   )}
                 </div>
 
+              </div>
+
+              <div className="mt-5">
+                <label className="block text-sm font-semibold text-violet-300 mb-2 uppercase tracking-wide">
+                  Achat pièces
+                </label>
+                <textarea
+                  value={formData.parts_purchased}
+                  onChange={(e) => setFormData({ ...formData, parts_purchased: e.target.value })}
+                  rows={2}
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white resize-none placeholder-gray-500 focus:border-violet-500 focus:outline-none transition-all"
+                  placeholder="Ex : écran commandé chez Utopya, batterie reçue..."
+                />
               </div>
 
               <div className="mt-5">
