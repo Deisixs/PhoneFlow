@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare
+  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare, Upload
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/Toast';
 import { PhoneModal } from '../components/PhoneModal';
 import { PhoneDetailModal } from '../components/PhoneDetailModal';
+import BulkImportModal from '../components/BulkImportModal';
 
 interface Phone {
   id: string;
@@ -53,6 +54,7 @@ export const Inventory: React.FC = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<Phone | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -217,12 +219,20 @@ export const Inventory: React.FC = () => {
           <h1 className="text-3xl font-bold text-white">Inventaire</h1>
           <p className="text-gray-400 mt-1">Gérez votre collection de smartphones</p>
         </div>
-        <button
-          onClick={() => { setSelectedPhone(null); setShowModal(true); }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition shadow-lg shadow-violet-600/20"
-        >
-          <Plus size={20} /> Ajouter un téléphone
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition"
+          >
+            <Upload size={20} /> Importer
+          </button>
+          <button
+            onClick={() => { setSelectedPhone(null); setShowModal(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition shadow-lg shadow-violet-600/20"
+          >
+            <Plus size={20} /> Ajouter un téléphone
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
@@ -335,6 +345,13 @@ export const Inventory: React.FC = () => {
           phone={selectedPhone}
           onClose={() => { setSelectedPhone(null); setShowDetailModal(false); }}
           onUpdate={loadPhones}
+        />
+      )}
+
+      {showImportModal && (
+        <BulkImportModal
+          onClose={() => setShowImportModal(false)}
+          onImported={loadPhones}
         />
       )}
     </div>
