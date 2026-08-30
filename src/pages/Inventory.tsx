@@ -23,6 +23,7 @@ interface Phone {
   sale_price: number | null;
   sale_date: string | null;
   is_sold: boolean;
+  is_incoming: boolean;
   qr_code: string | null;
   created_at: string;
   archived: boolean;
@@ -114,7 +115,27 @@ export const Inventory: React.FC = () => {
     const phoneRepairs = repairs.filter((r) => r.phone_id === phone.id);
     const hasActiveRepair = phoneRepairs.some((r) => r.status !== 'completed');
     if (hasActiveRepair) return 'repair';
+    if (phone.is_incoming) return 'incoming';
     return 'available';
+  };
+
+  // Bascule entre "En stock" et "Arrivage" (uniquement possible si pas vendu / pas en réparation)
+  const handleToggleIncoming = async (phone: Phone) => {
+    try {
+      const newValue = !phone.is_incoming;
+      const { error } = await supabase
+        .from('phones')
+        .update({ is_incoming: newValue })
+        .eq('id', phone.id);
+
+      if (error) throw error;
+
+      setPhones((prev) =>
+        prev.map((p) => (p.id === phone.id ? { ...p, is_incoming: newValue } : p))
+      );
+    } catch {
+      showToast('Erreur lors du changement de statut', 'error');
+    }
   };
 
   // Calcule le total des coûts de réparation pour un téléphone
@@ -146,9 +167,45 @@ export const Inventory: React.FC = () => {
         return <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full shadow-lg shadow-emerald-500/10">VENDU</span>;
       case 'repair':
         return <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full shadow-lg shadow-yellow-500/10 uppercase">En réparation</span>;
+      case 'incoming':
+        return <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs font-semibold rounded-full shadow-lg shadow-orange-500/10 uppercase">Arrivage</span>;
       default:
         return <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full shadow-lg shadow-blue-500/10 uppercase">En stock</span>;
     }
+  };
+
+  // Toggle "En stock" / "Arrivage" cliquable — seulement quand le téléphone n'est ni vendu ni en réparation
+  const renderStatusToggle = (phone: Phone, status: string) => {
+    if (status !== 'available' && status !== 'incoming') {
+      return getStatusBadge(status);
+    }
+
+    return (
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => status !== 'available' && handleToggleIncoming(phone)}
+          className={`px-3 py-1 text-xs font-semibold rounded-full uppercase transition-all ${
+            status === 'available'
+              ? 'bg-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/10'
+              : 'bg-white/5 text-gray-500 hover:bg-blue-500/10 hover:text-blue-400'
+          }`}
+        >
+          En stock
+        </button>
+        <button
+          type="button"
+          onClick={() => status !== 'incoming' && handleToggleIncoming(phone)}
+          className={`px-3 py-1 text-xs font-semibold rounded-full uppercase transition-all ${
+            status === 'incoming'
+              ? 'bg-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/10'
+              : 'bg-white/5 text-gray-500 hover:bg-orange-500/10 hover:text-orange-400'
+          }`}
+        >
+          Arrivage
+        </button>
+      </div>
+    );
   };
 
   const handleArchiveToggle = async (phone: Phone) => {
@@ -270,7 +327,7 @@ export const Inventory: React.FC = () => {
                     <p className="text-sm text-gray-500">{phone.storage} • {phone.color}</p>
                   </div>
                 </div>
-                {getStatusBadge(status)}
+                {renderStatusToggle(phone, status)}
               </div>
 
               <div className="space-y-3 mb-6">
