@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 interface StockPiece {
@@ -18,6 +18,8 @@ interface StockModalProps {
   piece?: StockPiece;
 }
 
+const SUPPLIER_OPTIONS = ['Utopya', 'LCD-Phone', 'p2m'];
+
 export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockModalProps) {
   const [formData, setFormData] = useState<StockPiece>({
     name: "",
@@ -30,6 +32,18 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
 
   const [priceTTC, setPriceTTC] = useState<string>('');
   const [priceHT, setPriceHT] = useState<string>('');
+  const [showSupplierList, setShowSupplierList] = useState(false);
+  const supplierRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (supplierRef.current && !supplierRef.current.contains(event.target as Node)) {
+        setShowSupplierList(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (piece) {
@@ -215,17 +229,42 @@ export default function StockModal({ isOpen, onClose, onSubmit, piece }: StockMo
             />
           </div>
 
-          {/* Fournisseur */}
-          <div>
+          {/* Fournisseur - Combo : texte libre + suggestions */}
+          <div ref={supplierRef} className="relative">
             <label className="text-sm text-gray-300 mb-1 block">Fournisseur</label>
             <input
               type="text"
               value={formData.supplier}
               onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+              onFocus={() => setShowSupplierList(true)}
               className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl 
               text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-              placeholder="Ex : AliExpress, Amazon…"
+              placeholder="Ex : Utopya, LCD-Phone, p2m…"
+              autoComplete="off"
             />
+
+            {showSupplierList && (
+              <div className="absolute z-20 w-full mt-2 max-h-48 overflow-y-auto bg-neutral-900 border border-white/10 rounded-xl shadow-2xl">
+                {SUPPLIER_OPTIONS
+                  .filter((s) => s.toLowerCase().includes(formData.supplier.toLowerCase()))
+                  .map((supplier) => (
+                    <div
+                      key={supplier}
+                      onClick={() => {
+                        setFormData({ ...formData, supplier });
+                        setShowSupplierList(false);
+                      }}
+                      className={`px-4 py-2.5 cursor-pointer transition-all border-b border-white/5 last:border-b-0 ${
+                        formData.supplier === supplier
+                          ? 'bg-violet-500/20 text-white font-semibold'
+                          : 'text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {supplier}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Lien */}
