@@ -300,7 +300,7 @@ export const Inventory: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher par modèle, IMEI, couleur..."
-            className="w-full pl-12 pr-4 py-3 bg-[#1a1425] border border-white/5 rounded-xl text-white focus:outline-none focus:border-violet-500/50 transition"
+            className="w-full pl-12 pr-4 py-3 backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-violet-500/50 transition"
           />
         </div>
         <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl text-gray-300">
@@ -317,7 +317,7 @@ export const Inventory: React.FC = () => {
           const netProfit = getNetProfit(phone);
           const profitPercentage = getProfitPercentage(phone);
           return (
-            <div key={phone.id} className="bg-[#1a1425] border border-white/5 rounded-2xl p-6 hover:border-violet-500/30 transition-all group shadow-xl">
+            <div key={phone.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-violet-600/20 rounded-lg flex items-center justify-center text-violet-400">
