@@ -30,6 +30,23 @@ const SERIES_CONFIG = [
   { id: 'autres' as SeriesFilter, label: 'Autres', icon: '⚪', pattern: null },
 ];
 
+type SubCategory = 'all' | 'batterie' | 'ecran' | 'camera' | 'autres';
+
+const SUBCATEGORY_CONFIG: { id: SubCategory; label: string; icon: string; pattern: RegExp | null }[] = [
+  { id: 'all', label: 'Toutes', icon: '📦', pattern: null },
+  { id: 'batterie', label: 'Batteries', icon: '🔋', pattern: /batterie|battery/i },
+  { id: 'ecran', label: 'Écrans', icon: '📱', pattern: /écran|ecran|vitre avant|vitre arriere|vitre arrière/i },
+  { id: 'camera', label: 'Caméras', icon: '📷', pattern: /caméra|camera|objectif/i },
+  { id: 'autres', label: 'Autres', icon: '🔧', pattern: null },
+];
+
+const getPieceSubCategory = (name: string): SubCategory => {
+  if (SUBCATEGORY_CONFIG.find(c => c.id === 'batterie')!.pattern!.test(name)) return 'batterie';
+  if (SUBCATEGORY_CONFIG.find(c => c.id === 'ecran')!.pattern!.test(name)) return 'ecran';
+  if (SUBCATEGORY_CONFIG.find(c => c.id === 'camera')!.pattern!.test(name)) return 'camera';
+  return 'autres';
+};
+
 export default function Stock() {
   const { user } = useAuth();
   const [pieces, setPieces] = useState<StockPiece[]>([]);
@@ -37,8 +54,14 @@ export default function Stock() {
   const [selectedPiece, setSelectedPiece] = useState<StockPiece | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeries, setSelectedSeries] = useState<SeriesFilter>('all');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory>('all');
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
+
+  const handleSelectSeries = (id: SeriesFilter) => {
+    setSelectedSeries(id);
+    setSelectedSubCategory('all');
+  };
 
   useEffect(() => {
     if (user) {
@@ -65,7 +88,7 @@ export default function Stock() {
   };
 
   // Filtrage par série et recherche
-  const filteredPieces = useMemo(() => {
+  const piecesInSeries = useMemo(() => {
     let filtered = pieces;
 
     // Filtre par série
@@ -91,6 +114,17 @@ export default function Stock() {
       }
     }
 
+    return filtered;
+  }, [pieces, selectedSeries]);
+
+  const filteredPieces = useMemo(() => {
+    let filtered = piecesInSeries;
+
+    // Filtre par sous-catégorie (batterie / écran / caméra / autres)
+    if (selectedSubCategory !== 'all') {
+      filtered = filtered.filter(piece => getPieceSubCategory(piece.name) === selectedSubCategory);
+    }
+
     // Filtre par recherche
     if (searchTerm) {
       filtered = filtered.filter(piece =>
@@ -99,8 +133,19 @@ export default function Stock() {
       );
     }
 
-    return filtered;
-  }, [pieces, selectedSeries, searchTerm]);
+    // Tri alphabétique par nom
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  }, [piecesInSeries, selectedSubCategory, searchTerm]);
+
+  // Compteurs par sous-catégorie (calculés sur la série actuellement sélectionnée)
+  const subCategoriesWithCount = useMemo(() => {
+    return SUBCATEGORY_CONFIG.map(sub => {
+      const count = sub.id === 'all'
+        ? piecesInSeries.length
+        : piecesInSeries.filter(piece => getPieceSubCategory(piece.name) === sub.id).length;
+      return { ...sub, count };
+    });
+  }, [piecesInSeries]);
 
   // Calcul des compteurs par série
   const seriesWithCount = useMemo(() => {
@@ -255,7 +300,7 @@ export default function Stock() {
               {seriesWithCount.map((series) => (
                 <button
                   key={series.id}
-                  onClick={() => setSelectedSeries(series.id)}
+                  onClick={() => handleSelectSeries(series.id)}
                   className={`
                     flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold whitespace-nowrap
                     transition-all duration-300 border-2
@@ -280,6 +325,44 @@ export default function Stock() {
               ))}
             </div>
           </div>
+
+          {/* Sous-filtres par type de pièce — visibles dès qu'une série est sélectionnée */}
+          {selectedSeries !== 'all' && (
+            <div className="animate-fade-in">
+              <p className="text-sm text-gray-400 mb-3 font-medium flex items-center gap-2">
+                <span>🔧</span>
+                <span>Filtrer par type</span>
+              </p>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-violet-500 scrollbar-track-transparent">
+                {subCategoriesWithCount.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setSelectedSubCategory(sub.id)}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-xl font-semibold whitespace-nowrap text-sm
+                      transition-all duration-300 border-2
+                      ${selectedSubCategory === sub.id
+                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 border-transparent text-white shadow-lg shadow-violet-500/40'
+                        : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-violet-500/50'
+                      }
+                    `}
+                  >
+                    <span>{sub.icon}</span>
+                    <span>{sub.label}</span>
+                    <span className={`
+                      px-1.5 py-0.5 rounded-full text-[11px] font-bold
+                      ${selectedSubCategory === sub.id
+                        ? 'bg-white/30 text-white'
+                        : 'bg-white/10 text-gray-400'
+                      }
+                    `}>
+                      {sub.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Barre de recherche */}
           <div className="relative">
