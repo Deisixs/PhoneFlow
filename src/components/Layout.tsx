@@ -57,7 +57,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen w-full bg-black text-white flex">
 
       {/* FOND GLOBAL */}
-      <div className="fixed inset-0 bg-gradient-to-br from-violet-700/20 via-fuchsia-600/10 to-blue-800/20 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black pointer-events-none" />
 
       {/* SIDEBAR FIXE */}
       <aside
