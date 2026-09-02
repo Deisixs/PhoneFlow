@@ -19,6 +19,7 @@ interface Phone {
   qr_code: string | null;
   battery_health: number | null;
   diagnostic_image_url: string | null;
+  diagnostic_notes: string | null;
 }
 
 interface Repair {
@@ -54,9 +55,11 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
   const [repairParts, setRepairParts] = useState<Record<string, RepairPart[]>>({});
   const [loading, setLoading] = useState(true);
   const [diagnosticUrl, setDiagnosticUrl] = useState<string | null>(phone.diagnostic_image_url);
+  const [diagnosticNotes, setDiagnosticNotes] = useState<string>(phone.diagnostic_notes || '');
   const [uploadingDiagnostic, setUploadingDiagnostic] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const notesSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -253,6 +256,26 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     }
   };
 
+  const handleDiagnosticNotesChange = (value: string) => {
+    setDiagnosticNotes(value);
+
+    if (notesSaveTimeout.current) clearTimeout(notesSaveTimeout.current);
+
+    notesSaveTimeout.current = setTimeout(async () => {
+      try {
+        const { error } = await supabase
+          .from('phones')
+          .update({ diagnostic_notes: value })
+          .eq('id', phone.id);
+
+        if (error) throw error;
+        onUpdate?.();
+      } catch (error: any) {
+        showToast(error.message || 'Erreur lors de la sauvegarde', 'error');
+      }
+    }, 800);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
@@ -427,6 +450,20 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                   )}
                 </button>
               )}
+
+              {/* Notes de diagnostic */}
+              <div className="mt-4">
+                <p className="text-xs text-violet-300 uppercase tracking-wider font-semibold mb-2">
+                  Ce qui va / ne va pas
+                </p>
+                <textarea
+                  value={diagnosticNotes}
+                  onChange={(e) => handleDiagnosticNotesChange(e.target.value)}
+                  rows={3}
+                  placeholder="Ex : écran OK, caméra arrière floue, batterie 78%, bouton power dur..."
+                  className="w-full px-4 py-3 bg-gray-900/50 border border-violet-500/30 rounded-xl text-white placeholder-gray-500 text-sm resize-none focus:border-violet-500 focus:outline-none transition-all"
+                />
+              </div>
             </div>
 
             {/* 2. HISTORIQUE DES RÉPARATIONS */}
