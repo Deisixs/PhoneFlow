@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Package, Smartphone, Wrench, DollarSign, Calendar, Battery } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Package, Smartphone, Wrench, DollarSign, Calendar, Battery, Camera, Upload, Loader2, Trash2, ZoomIn } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 
@@ -18,6 +18,7 @@ interface Phone {
   is_sold: boolean;
   qr_code: string | null;
   battery_health: number | null;
+  diagnostic_image_url: string | null;
 }
 
 interface Repair {
@@ -48,10 +49,14 @@ interface PhoneDetailModalProps {
   onUpdate?: () => void;
 }
 
-export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClose }) => {
+export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClose, onUpdate }) => {
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [repairParts, setRepairParts] = useState<Record<string, RepairPart[]>>({});
   const [loading, setLoading] = useState(true);
+  const [diagnosticUrl, setDiagnosticUrl] = useState<string | null>(phone.diagnostic_image_url);
+  const [uploadingDiagnostic, setUploadingDiagnostic] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -186,6 +191,68 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
     return 'text-red-400';
   };
 
+  const handleDiagnosticUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Le fichier doit être une image', 'error');
+      return;
+    }
+
+    setUploadingDiagnostic(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${phone.id}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('diagnostics')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('diagnostics')
+        .getPublicUrl(fileName);
+
+      const publicUrl = urlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('phones')
+        .update({ diagnostic_image_url: publicUrl })
+        .eq('id', phone.id);
+
+      if (updateError) throw updateError;
+
+      setDiagnosticUrl(publicUrl);
+      showToast('Diagnostic enregistré', 'success');
+      onUpdate?.();
+    } catch (error: any) {
+      showToast(error.message || "Erreur lors de l'upload", 'error');
+    } finally {
+      setUploadingDiagnostic(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDiagnosticDelete = async () => {
+    if (!confirm('Supprimer cette image de diagnostic ?')) return;
+    try {
+      const { error } = await supabase
+        .from('phones')
+        .update({ diagnostic_image_url: null })
+        .eq('id', phone.id);
+
+      if (error) throw error;
+
+      setDiagnosticUrl(null);
+      showToast('Diagnostic supprimé', 'success');
+      onUpdate?.();
+    } catch (error: any) {
+      showToast(error.message || 'Erreur lors de la suppression', 'error');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-black via-gray-900 to-black animate-fade-in">
       <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl shadow-violet-500/20">
@@ -287,6 +354,78 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
                     {phone.notes}
                   </p>
                 </div>
+              )}
+            </div>
+
+            {/* DIAGNOSTIC */}
+            <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 backdrop-blur-xl border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                    <Camera className="w-4 h-4 text-white" />
+                  </div>
+                  Diagnostic
+                </h3>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleDiagnosticUpload}
+                  className="hidden"
+                />
+
+                {diagnosticUrl && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingDiagnostic}
+                      className="px-3 py-1.5 text-xs font-semibold bg-violet-600/20 text-violet-300 rounded-lg hover:bg-violet-600/30 transition-all disabled:opacity-50"
+                    >
+                      Remplacer
+                    </button>
+                    <button
+                      onClick={handleDiagnosticDelete}
+                      className="p-1.5 bg-red-600/10 text-red-400 rounded-lg hover:bg-red-600/20 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {diagnosticUrl ? (
+                <button
+                  onClick={() => setShowLightbox(true)}
+                  className="relative w-full group rounded-xl overflow-hidden border border-violet-500/20"
+                >
+                  <img
+                    src={diagnosticUrl}
+                    alt="Diagnostic"
+                    className="w-full max-h-80 object-contain bg-black/40"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                    <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-all" />
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingDiagnostic}
+                  className="w-full py-10 border-2 border-dashed border-violet-500/20 rounded-xl flex flex-col items-center gap-2 text-gray-400 hover:border-violet-500/40 hover:text-violet-300 hover:bg-violet-500/5 transition-all disabled:opacity-50"
+                >
+                  {uploadingDiagnostic ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span className="text-sm">Envoi en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6" />
+                      <span className="text-sm font-medium">Ajouter une image de diagnostic</span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
 
@@ -427,6 +566,27 @@ export const PhoneDetailModal: React.FC<PhoneDetailModalProps> = ({ phone, onClo
           </div>
         </div>
       </div>
+
+      {/* LIGHTBOX diagnostic */}
+      {showLightbox && diagnosticUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in"
+          onClick={() => setShowLightbox(false)}
+        >
+          <button
+            onClick={() => setShowLightbox(false)}
+            className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <img
+            src={diagnosticUrl}
+            alt="Diagnostic en grand"
+            className="max-w-full max-h-full object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
