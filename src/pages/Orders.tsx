@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Truck, Package, Edit2, Check, Trash2, ExternalLink, Archive } from 'lucide-react';
+import { Plus, Truck, Package, Edit2, Check, Trash2, ExternalLink, Archive, Edit3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/Toast';
@@ -8,9 +8,12 @@ import OrderModal from '../components/OrderModal';
 interface OrderItem {
   id: string;
   name: string;
+  description?: string;
   purchase_price: number;
   quantity: number;
   supplier: string;
+  supplier_link?: string;
+  stock_piece_id?: string | null;
 }
 
 interface Order {
@@ -30,6 +33,7 @@ export default function Orders() {
   const [itemsByOrder, setItemsByOrder] = useState<Record<string, OrderItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
@@ -339,6 +343,12 @@ export default function Orders() {
                 {/* Actions */}
                 <div className="flex gap-2 mt-4">
                   <button
+                    onClick={() => setOrderToEdit(order)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-violet-500/10 text-violet-400 rounded-lg hover:bg-violet-500/20 transition"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => handleArchiveToggle(order)}
                     disabled={!order.archived && order.status !== 'recu'}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-yellow-500/10 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
@@ -363,6 +373,25 @@ export default function Orders() {
         <OrderModal
           onClose={() => setShowModal(false)}
           onCreated={loadOrders}
+        />
+      )}
+
+      {orderToEdit && (
+        <OrderModal
+          order={{
+            id: orderToEdit.id,
+            tracking_number: orderToEdit.tracking_number,
+            tracking_link: orderToEdit.tracking_link,
+            carrier: orderToEdit.carrier,
+            supplier: orderToEdit.supplier,
+            notes: orderToEdit.notes,
+            items: itemsByOrder[orderToEdit.id] || [],
+          }}
+          onClose={() => setOrderToEdit(null)}
+          onCreated={() => {
+            loadOrders();
+            setOrderToEdit(null);
+          }}
         />
       )}
     </div>
