@@ -8,15 +8,37 @@ const SUPPLIER_OPTIONS = ['Utopya', 'LCD-Phone', 'p2m'];
 const CARRIER_OPTIONS = ['Colissimo', 'Chronopost', 'Mondial Relay', 'DHL', 'UPS', 'DPD', 'GLS'];
 
 interface OrderItem {
+  id?: string;
   name: string;
   description: string;
   purchase_price: string; // string pour éviter les bugs de saisie décimale
   quantity: string;
   supplier: string;
   supplier_link: string;
+  stock_piece_id?: string | null;
+}
+
+interface ExistingOrder {
+  id: string;
+  tracking_number: string;
+  tracking_link: string;
+  carrier: string;
+  supplier: string;
+  notes: string;
+  items: {
+    id: string;
+    name: string;
+    description?: string;
+    purchase_price: number;
+    quantity: number;
+    supplier: string;
+    supplier_link?: string;
+    stock_piece_id?: string | null;
+  }[];
 }
 
 interface OrderModalProps {
+  order?: ExistingOrder;
   onClose: () => void;
   onCreated: () => void;
 }
@@ -30,17 +52,34 @@ const emptyItem = (): OrderItem => ({
   supplier_link: '',
 });
 
-export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [trackingLink, setTrackingLink] = useState('');
-  const [carrier, setCarrier] = useState('');
+export default function OrderModal({ order, onClose, onCreated }: OrderModalProps) {
+  const isEditing = !!order;
+
+  const [trackingNumber, setTrackingNumber] = useState(order?.tracking_number || '');
+  const [trackingLink, setTrackingLink] = useState(order?.tracking_link || '');
+  const [carrier, setCarrier] = useState(order?.carrier || '');
   const [showCarrierList, setShowCarrierList] = useState(false);
   const carrierRef = useRef<HTMLDivElement>(null);
-  const [supplier, setSupplier] = useState('');
+  const [supplier, setSupplier] = useState(order?.supplier || '');
   const [showOrderSupplierList, setShowOrderSupplierList] = useState(false);
   const orderSupplierRef = useRef<HTMLDivElement>(null);
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [notes, setNotes] = useState(order?.notes || '');
+  const [items, setItems] = useState<OrderItem[]>(
+    order
+      ? order.items.map((it) => ({
+          id: it.id,
+          name: it.name,
+          description: it.description || '',
+          purchase_price: it.purchase_price.toString(),
+          quantity: it.quantity.toString(),
+          supplier: it.supplier,
+          supplier_link: it.supplier_link || '',
+          stock_piece_id: it.stock_piece_id,
+        }))
+      : []
+  );
+  // Garde une copie des ids d'origine pour détecter les suppressions
+  const originalItemIds = useRef<string[]>(order ? order.items.map((it) => it.id) : []);
   const [submitting, setSubmitting] = useState(false);
   const [openSupplierIndex, setOpenSupplierIndex] = useState<number | null>(null);
   const supplierRef = useRef<HTMLDivElement>(null);
@@ -86,71 +125,163 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
 
     setSubmitting(true);
     try {
-      // 1. Créer la commande
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: userId!,
-          tracking_number: trackingNumber,
-          tracking_link: trackingLink,
-          carrier,
-          supplier,
-          notes,
-          status: 'en_transit',
-        })
-        .select()
-        .single();
+      if (isEditing && order) {
+        // ===== MODE ÉDITION =====
 
-      if (orderError) throw orderError;
+        // 1. Met à jour les infos de la commande
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({ tracking_number: trackingNumber, tracking_link: trackingLink, carrier, supplier, notes })
+          .eq('id', order.id);
 
-      // 2. Pour chaque pièce : l'ajouter au stock ET l'enregistrer dans order_items
-      for (const item of validItems) {
-        const quantity = parseInt(item.quantity) || 1;
-        const price = parseFloat(item.purchase_price) || 0;
+        if (updateError) throw updateError;
 
-        // Ajout dans stock_pieces
-        const { data: stockPiece, error: stockError } = await supabase
-          .from('stock_pieces')
+        const currentIds = validItems.filter((it) => it.id).map((it) => it.id as string);
+
+        // 2. Pièces supprimées : on retire l'order_item ET la pièce du stock liée
+        const removedIds = originalItemIds.current.filter((id) => !currentIds.includes(id));
+        for (const removedId of removedIds) {
+          const original = order.items.find((it) => it.id === removedId);
+          if (original?.stock_piece_id) {
+            await supabase.from('stock_pieces').delete().eq('id', original.stock_piece_id);
+          }
+          await supabase.from('order_items').delete().eq('id', removedId);
+        }
+
+        // 3. Pièces existantes modifiées : on met à jour order_item + la pièce de stock liée
+        // 4. Nouvelles pièces : on les crée dans stock_pieces + order_items
+        for (const item of validItems) {
+          const quantity = parseInt(item.quantity) || 1;
+          const price = parseFloat(item.purchase_price) || 0;
+
+          if (item.id) {
+            // Pièce existante -> update
+            await supabase
+              .from('order_items')
+              .update({
+                name: item.name,
+                description: item.description,
+                purchase_price: price,
+                quantity,
+                supplier: item.supplier,
+                supplier_link: item.supplier_link,
+              })
+              .eq('id', item.id);
+
+            if (item.stock_piece_id) {
+              await supabase
+                .from('stock_pieces')
+                .update({
+                  name: item.name,
+                  description: item.description,
+                  purchase_price: price,
+                  quantity,
+                  supplier: item.supplier,
+                  supplier_link: item.supplier_link,
+                })
+                .eq('id', item.stock_piece_id);
+            }
+          } else {
+            // Nouvelle pièce -> création stock + order_item
+            const { data: stockPiece, error: stockError } = await supabase
+              .from('stock_pieces')
+              .insert({
+                user_id: userId!,
+                name: item.name,
+                description: item.description,
+                purchase_price: price,
+                quantity,
+                supplier: item.supplier,
+                supplier_link: item.supplier_link,
+              })
+              .select()
+              .single();
+
+            if (stockError) {
+              console.error('Erreur ajout stock:', stockError);
+              continue;
+            }
+
+            await supabase.from('order_items').insert({
+              order_id: order.id,
+              name: item.name,
+              description: item.description,
+              purchase_price: price,
+              quantity,
+              supplier: item.supplier,
+              supplier_link: item.supplier_link,
+              stock_piece_id: stockPiece?.id || null,
+            });
+          }
+        }
+
+        showToast('Commande mise à jour', 'success');
+      } else {
+        // ===== MODE CRÉATION =====
+
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
           .insert({
             user_id: userId!,
+            tracking_number: trackingNumber,
+            tracking_link: trackingLink,
+            carrier,
+            supplier,
+            notes,
+            status: 'en_transit',
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        for (const item of validItems) {
+          const quantity = parseInt(item.quantity) || 1;
+          const price = parseFloat(item.purchase_price) || 0;
+
+          const { data: stockPiece, error: stockError } = await supabase
+            .from('stock_pieces')
+            .insert({
+              user_id: userId!,
+              name: item.name,
+              description: item.description,
+              purchase_price: price,
+              quantity,
+              supplier: item.supplier,
+              supplier_link: item.supplier_link,
+            })
+            .select()
+            .single();
+
+          if (stockError) {
+            console.error('Erreur ajout stock:', stockError);
+            continue;
+          }
+
+          await supabase.from('order_items').insert({
+            order_id: newOrder.id,
             name: item.name,
             description: item.description,
             purchase_price: price,
             quantity,
             supplier: item.supplier,
             supplier_link: item.supplier_link,
-          })
-          .select()
-          .single();
-
-        if (stockError) {
-          console.error('Erreur ajout stock:', stockError);
-          continue;
+            stock_piece_id: stockPiece?.id || null,
+          });
         }
 
-        // Enregistrement dans order_items (référence vers la pièce créée)
-        await supabase.from('order_items').insert({
-          order_id: order.id,
-          name: item.name,
-          description: item.description,
-          purchase_price: price,
-          quantity,
-          supplier: item.supplier,
-          supplier_link: item.supplier_link,
-          stock_piece_id: stockPiece?.id || null,
-        });
+        showToast(
+          validItems.length > 0
+            ? 'Commande créée et pièces ajoutées au stock'
+            : 'Commande créée',
+          'success'
+        );
       }
 
-      showToast(
-        validItems.length > 0
-          ? 'Commande créée et pièces ajoutées au stock'
-          : 'Commande créée',
-        'success'
-      );
       onCreated();
       onClose();
     } catch (error: any) {
-      showToast(error.message || 'Erreur lors de la création de la commande', 'error');
+      showToast(error.message || "Erreur lors de l'enregistrement de la commande", 'error');
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +294,7 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
 
         <div className="sticky top-0 z-10 bg-neutral-900/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-            Nouvelle commande
+            {isEditing ? 'Modifier la commande' : 'Nouvelle commande'}
           </h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition">
             <X className="w-5 h-5 text-white" />
@@ -413,10 +544,10 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Création...
+                  {isEditing ? 'Enregistrement...' : 'Création...'}
                 </>
               ) : (
-                'Créer la commande'
+                isEditing ? 'Enregistrer les modifications' : 'Créer la commande'
               )}
             </button>
           </div>
