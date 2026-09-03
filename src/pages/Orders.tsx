@@ -18,6 +18,7 @@ interface Order {
   tracking_number: string;
   tracking_link: string;
   carrier: string;
+  supplier: string;
   status: 'en_transit' | 'recu';
   archived: boolean;
   notes: string;
@@ -211,6 +212,9 @@ export default function Orders() {
                         day: 'numeric', month: 'long', year: 'numeric'
                       })}
                     </p>
+                    {order.supplier && (
+                      <p className="text-sm text-white font-semibold mt-1">{order.supplier}</p>
+                    )}
                     {order.carrier && (
                       <p className="text-xs text-gray-400 mt-0.5">{order.carrier}</p>
                     )}
