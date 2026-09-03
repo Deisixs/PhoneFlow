@@ -31,9 +31,13 @@ const emptyItem = (): OrderItem => ({
 
 export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingLink, setTrackingLink] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [supplier, setSupplier] = useState('');
+  const [showOrderSupplierList, setShowOrderSupplierList] = useState(false);
+  const orderSupplierRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [openSupplierIndex, setOpenSupplierIndex] = useState<number | null>(null);
   const supplierRef = useRef<HTMLDivElement>(null);
@@ -45,6 +49,9 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
     const handleClickOutside = (e: MouseEvent) => {
       if (supplierRef.current && !supplierRef.current.contains(e.target as Node)) {
         setOpenSupplierIndex(null);
+      }
+      if (orderSupplierRef.current && !orderSupplierRef.current.contains(e.target as Node)) {
+        setShowOrderSupplierList(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -70,10 +77,6 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
     e.preventDefault();
 
     const validItems = items.filter((it) => it.name.trim() && parseFloat(it.purchase_price) >= 0);
-    if (validItems.length === 0) {
-      showToast('Ajoute au moins une pièce valide (nom requis)', 'error');
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -83,7 +86,9 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
         .insert({
           user_id: userId!,
           tracking_number: trackingNumber,
+          tracking_link: trackingLink,
           carrier,
+          supplier,
           notes,
           status: 'en_transit',
         })
@@ -130,7 +135,12 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
         });
       }
 
-      showToast('Commande créée et pièces ajoutées au stock', 'success');
+      showToast(
+        validItems.length > 0
+          ? 'Commande créée et pièces ajoutées au stock'
+          : 'Commande créée',
+        'success'
+      );
       onCreated();
       onClose();
     } catch (error: any) {
@@ -158,9 +168,55 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
 
           {/* Suivi */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div ref={orderSupplierRef} className="relative">
+              <label className="text-sm text-gray-300 mb-1 block">Fournisseur</label>
+              <input
+                type="text"
+                value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+                onFocus={() => setShowOrderSupplierList(true)}
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl
+                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                placeholder="Ex : Utopya, LCD-Phone, p2m…"
+                autoComplete="off"
+              />
+              {showOrderSupplierList && (
+                <div className="absolute z-20 w-full mt-2 max-h-48 overflow-y-auto bg-neutral-900 border border-white/10 rounded-xl shadow-2xl">
+                  {SUPPLIER_OPTIONS
+                    .filter((s) => s.toLowerCase().includes(supplier.toLowerCase()))
+                    .map((s) => (
+                      <div
+                        key={s}
+                        onClick={() => {
+                          setSupplier(s);
+                          setShowOrderSupplierList(false);
+                        }}
+                        className={`px-4 py-2.5 cursor-pointer transition-all border-b border-white/5 last:border-b-0 ${
+                          supplier === s
+                            ? 'bg-violet-500/20 text-white font-semibold'
+                            : 'text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {s}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-sm text-gray-300 mb-1 block">Transporteur</label>
+              <input
+                type="text"
+                value={carrier}
+                onChange={(e) => setCarrier(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl
+                text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+                placeholder="Ex : Colissimo, DHL..."
+              />
+            </div>
             <div>
               <label className="text-sm text-gray-300 mb-1 block">
-                Numéro de suivi <span className="text-gray-500">(optionnel, modifiable après)</span>
+                Numéro de suivi <span className="text-gray-500">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -172,14 +228,16 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
               />
             </div>
             <div>
-              <label className="text-sm text-gray-300 mb-1 block">Transporteur</label>
+              <label className="text-sm text-gray-300 mb-1 block">
+                Lien de suivi <span className="text-gray-500">(optionnel)</span>
+              </label>
               <input
-                type="text"
-                value={carrier}
-                onChange={(e) => setCarrier(e.target.value)}
+                type="url"
+                value={trackingLink}
+                onChange={(e) => setTrackingLink(e.target.value)}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl
                 text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
-                placeholder="Ex : Colissimo, DHL..."
+                placeholder="https://..."
               />
             </div>
           </div>
@@ -202,6 +260,11 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
             </div>
 
             <div className="space-y-3">
+              {items.length === 0 && (
+                <p className="text-sm text-gray-500 italic px-1">
+                  Aucune pièce — la commande peut être créée sans, tu pourras en ajouter plus tard.
+                </p>
+              )}
               {items.map((item, index) => (
                 <div key={index} className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
                   <div className="flex items-start gap-3">
@@ -214,7 +277,7 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
                         placeholder="Nom de la pièce (ex: Écran iPhone 13)"
                       />
                     </div>
-                    {items.length > 1 && (
+                    {items.length > 0 && (
                       <button
                         type="button"
                         onClick={() => removeItem(index)}
