@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Package,
-  Hammer
+  Hammer,
+  Truck
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
@@ -25,6 +26,7 @@ const navItems = [
   { path: '/inventory', icon: Smartphone, label: 'Inventaire' },
   { path: '/repairs', icon: Wrench, label: 'Réparations' },
   { path: '/stock', icon: Package, label: 'Stock Pièces' },
+  { path: '/orders', icon: Truck, label: 'Suivi Commandes' },
   { path: '/materiel', icon: Hammer, label: 'Matériel' },
   { path: '/analytics', icon: BarChart3, label: 'Analyses' },
   { path: '/settings', icon: Settings, label: 'Paramètres' },
