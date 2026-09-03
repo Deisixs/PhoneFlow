@@ -11,6 +11,7 @@ import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import Stock from './pages/Stock';
 import Materiel from './pages/Materiel';
+import Orders from './pages/Orders';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isLocked } = useAuth();
@@ -115,6 +116,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Materiel />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Orders />
             </Layout>
           </ProtectedRoute>
         }
