@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
 
 const SUPPLIER_OPTIONS = ['Utopya', 'LCD-Phone', 'p2m'];
+const CARRIER_OPTIONS = ['Colissimo', 'Chronopost', 'Mondial Relay', 'DHL', 'UPS', 'DPD', 'GLS'];
 
 interface OrderItem {
   name: string;
@@ -33,6 +34,8 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingLink, setTrackingLink] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [showCarrierList, setShowCarrierList] = useState(false);
+  const carrierRef = useRef<HTMLDivElement>(null);
   const [supplier, setSupplier] = useState('');
   const [showOrderSupplierList, setShowOrderSupplierList] = useState(false);
   const orderSupplierRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,9 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
       }
       if (orderSupplierRef.current && !orderSupplierRef.current.contains(e.target as Node)) {
         setShowOrderSupplierList(false);
+      }
+      if (carrierRef.current && !carrierRef.current.contains(e.target as Node)) {
+        setShowCarrierList(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -203,16 +209,40 @@ export default function OrderModal({ onClose, onCreated }: OrderModalProps) {
                 </div>
               )}
             </div>
-            <div>
+            <div ref={carrierRef} className="relative">
               <label className="text-sm text-gray-300 mb-1 block">Transporteur</label>
               <input
                 type="text"
                 value={carrier}
                 onChange={(e) => setCarrier(e.target.value)}
+                onFocus={() => setShowCarrierList(true)}
                 className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl
                 text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
                 placeholder="Ex : Colissimo, DHL..."
+                autoComplete="off"
               />
+              {showCarrierList && (
+                <div className="absolute z-20 w-full mt-2 max-h-48 overflow-y-auto bg-neutral-900 border border-white/10 rounded-xl shadow-2xl">
+                  {CARRIER_OPTIONS
+                    .filter((c) => c.toLowerCase().includes(carrier.toLowerCase()))
+                    .map((c) => (
+                      <div
+                        key={c}
+                        onClick={() => {
+                          setCarrier(c);
+                          setShowCarrierList(false);
+                        }}
+                        className={`px-4 py-2.5 cursor-pointer transition-all border-b border-white/5 last:border-b-0 ${
+                          carrier === c
+                            ? 'bg-violet-500/20 text-white font-semibold'
+                            : 'text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {c}
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm text-gray-300 mb-1 block">
