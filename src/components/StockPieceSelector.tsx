@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Plus, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Plus, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,11 +31,24 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
   const [stockPieces, setStockPieces] = useState<StockPiece[]>([]);
   const [showSelector, setShowSelector] = useState(false);
   const [selectedPieceId, setSelectedPieceId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchStockPieces();
   }, [user]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchStockPieces = async () => {
     if (!user) return;
@@ -55,6 +68,18 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
     }
   };
 
+  const filteredPieces = stockPieces.filter((piece) =>
+    piece.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedPiece = stockPieces.find((p) => p.id === selectedPieceId);
+
+  const handleSelectPiece = (piece: StockPiece) => {
+    setSelectedPieceId(piece.id);
+    setSearchTerm(piece.name);
+    setShowDropdown(false);
+  };
+
   const handleAddPiece = () => {
     if (!selectedPieceId || quantity < 1) return;
 
@@ -69,16 +94,6 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
       return;
     }
 
-    console.log('✅ Ajout de pièce:', {
-      stock_piece_id: piece.id,
-      quantity_used: quantity,
-      stock_piece: {
-        name: piece.name,
-        purchase_price: piece.purchase_price
-      }
-    });
-
-    // Ajouter la pièce (temporairement ou directement selon le contexte)
     onAddPiece({
       stock_piece_id: piece.id,
       quantity_used: quantity,
@@ -90,6 +105,7 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
 
     // Réinitialiser
     setSelectedPieceId('');
+    setSearchTerm('');
     setQuantity(1);
     setShowSelector(false);
   };
@@ -128,21 +144,49 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
             </div>
           ) : (
             <>
-              <div>
+              <div ref={searchRef} className="relative">
                 <label className="block text-sm text-gray-400 mb-2">Pièce</label>
-                <select
-                  value={selectedPieceId}
-                  onChange={(e) => setSelectedPieceId(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg 
-                           text-white focus:outline-none focus:border-violet-500"
-                >
-                  <option value="">Sélectionner une pièce...</option>
-                  {stockPieces.map((piece) => (
-                    <option key={piece.id} value={piece.id}>
-                      {piece.name} - {piece.purchase_price}€ (Stock: {piece.quantity})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setSelectedPieceId('');
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    placeholder="Rechercher une pièce..."
+                    autoComplete="off"
+                    className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg 
+                             text-white placeholder-gray-500 focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                {showDropdown && (
+                  <div className="absolute z-30 w-full mt-1 max-h-64 overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg shadow-2xl">
+                    {filteredPieces.length === 0 ? (
+                      <div className="px-3 py-3 text-sm text-gray-500 italic">
+                        Aucune pièce trouvée
+                      </div>
+                    ) : (
+                      filteredPieces.map((piece) => (
+                        <div
+                          key={piece.id}
+                          onClick={() => handleSelectPiece(piece)}
+                          className={`px-3 py-2.5 cursor-pointer transition-all border-b border-gray-800 last:border-b-0 text-sm ${
+                            selectedPieceId === piece.id
+                              ? 'bg-violet-500/20 text-white font-semibold'
+                              : 'text-gray-200 hover:bg-white/5'
+                          }`}
+                        >
+                          {piece.name} <span className="text-gray-500">- {piece.purchase_price}€ (Stock: {piece.quantity})</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -157,10 +201,10 @@ function StockPieceSelector({ onAddPiece }: StockPieceSelectorProps) {
                 />
               </div>
 
-              {selectedPieceId && (
+              {selectedPiece && (
                 <div className="p-3 bg-violet-500/10 rounded-lg border border-violet-500/20">
                   <p className="text-sm text-violet-300">
-                    Coût: {(stockPieces.find(p => p.id === selectedPieceId)?.purchase_price! * quantity).toFixed(2)}€
+                    Coût: {(selectedPiece.purchase_price * quantity).toFixed(2)}€
                   </p>
                 </div>
               )}
