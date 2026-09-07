@@ -14,7 +14,7 @@ import Materiel from './pages/Materiel';
 import Orders from './pages/Orders';
 import Outils from './pages/Outils';
 import PanicPro from './pages/PanicPro';
-import FlowIA from './pages/FlowIA';
+import PriceEstimator from './pages/PriceEstimator';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isLocked } = useAuth();
@@ -114,11 +114,11 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/outils/flow-ia"
+        path="/outils/estimation-prix"
         element={
           <ProtectedRoute>
             <Layout>
-              <FlowIA />
+              <PriceEstimator />
             </Layout>
           </ProtectedRoute>
         }
