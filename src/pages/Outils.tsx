@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wrench, AlertTriangle, Tag, ArrowRight } from 'lucide-react';
+import { Wrench, AlertTriangle, Tag, FileText, ArrowRight } from 'lucide-react';
 
 interface ToolCard {
   id: string;
@@ -28,6 +28,14 @@ const TOOLS: ToolCard[] = [
     path: '/outils/estimation-prix',
     gradient: 'from-emerald-500 to-teal-500',
   },
+  {
+    id: 'ad-generator',
+    icon: FileText,
+    title: 'Générateur d\'annonces',
+    description: 'Titre + description prêts à copier pour Vinted / LeBonCoin.',
+    path: '/outils/generateur-annonces',
+    gradient: 'from-blue-500 to-cyan-500',
+  },
 ];
 
 export default function Outils() {
@@ -45,7 +53,7 @@ export default function Outils() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           return (
