@@ -5,6 +5,7 @@ import {
   Wrench,
   BarChart3,
   Settings,
+  SlidersHorizontal
   QrCode,
   LogOut,
   Lock,
@@ -29,6 +30,7 @@ const navItems = [
   { path: '/orders', icon: Truck, label: 'Suivi Commandes' },
   { path: '/materiel', icon: Hammer, label: 'Matériel' },
   { path: '/analytics', icon: BarChart3, label: 'Analyses' },
+  { path: '/outils', icon: SlidersHorizontal, label: 'Outils' },
   { path: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
