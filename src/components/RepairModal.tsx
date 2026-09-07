@@ -163,16 +163,17 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
     const newPieces = [...usedPieces, { ...piece, isTemporary: true }];
     setUsedPieces(newPieces);
     
-    // JUSTE ajouter le coût de la nouvelle pièce (pas recalculer tout)
-    const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
-    const newCost = formData.cost + pieceCost;
+    // Recalculer le coût TOTAL depuis la liste complète (pas d'incrément)
+    // -> même si cette fonction est appelée deux fois par erreur, le résultat est identique
+    const totalCost = newPieces.reduce(
+      (sum, p) => sum + p.quantity_used * (p.stock_piece.purchase_price || 0),
+      0
+    );
     
-    console.log('💰 Coût actuel:', formData.cost);
-    console.log('💰 Coût pièce ajoutée:', pieceCost);
-    console.log('💰 Nouveau coût total:', newCost);
+    console.log('💰 Coût total recalculé après ajout:', totalCost);
     
-    if (!isNaN(newCost) && isFinite(newCost)) {
-      setFormData(prev => ({ ...prev, cost: newCost }));
+    if (!isNaN(totalCost) && isFinite(totalCost)) {
+      setFormData(prev => ({ ...prev, cost: totalCost }));
     }
     
     // Réinitialiser après un délai
@@ -212,8 +213,12 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
           if (updateError) throw updateError;
         }
 
-        const costReduction = piece.quantity_used * piece.stock_piece.purchase_price;
-        const newCost = formData.cost - costReduction;
+        // Recalculer le coût TOTAL depuis les pièces restantes (pas de soustraction)
+        const remainingPieces = usedPieces.filter((p) => p.id !== piece.id);
+        const newCost = remainingPieces.reduce(
+          (sum, p) => sum + p.quantity_used * (p.stock_piece.purchase_price || 0),
+          0
+        );
 
         const { error: costError } = await supabase
           .from('repairs')
@@ -233,17 +238,16 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
       }
     }
 
-    // Pour pièce temporaire : soustraire au lieu de recalculer
+    // Pour pièce temporaire : recalculer le total depuis la liste restante
     const newPieces = usedPieces.filter((_, i) => i !== index);
     setUsedPieces(newPieces);
 
-    // Soustraire le coût de la pièce retirée
-    const pieceCost = piece.quantity_used * (piece.stock_piece.purchase_price || 0);
-    const newCost = formData.cost - pieceCost;
+    const newCost = newPieces.reduce(
+      (sum, p) => sum + p.quantity_used * (p.stock_piece.purchase_price || 0),
+      0
+    );
     
-    console.log('💰 Coût actuel:', formData.cost);
-    console.log('💰 Coût pièce retirée:', pieceCost);
-    console.log('💰 Nouveau coût:', newCost);
+    console.log('💰 Coût total recalculé après retrait:', newCost);
     
     if (!isNaN(newCost) && isFinite(newCost)) {
       setFormData(prev => ({ ...prev, cost: newCost }));
