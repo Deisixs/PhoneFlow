@@ -208,7 +208,8 @@ export function Analytics() {
 
   const stats = calculateStats();
 
-  // ===== Comparatif "ce mois vs mois dernier" (indépendant du filtre de période ci-dessus) =====
+  // ===== Comparatif dynamique : période actuelle vs période précédente de même durée =====
+  // (7 derniers jours -> vs 7 jours avant ça, 30 derniers jours -> vs 30 jours avant ça, etc.)
 
   const getPeriodStats = (startDate: Date, endDate: Date) => {
     const phonesByPurchase = phones.filter((p) => {
@@ -248,33 +249,73 @@ export function Analytics() {
     return { totalPurchased, totalSold, ca, totalNetProfit, marginPct, frozenMoney, repairCost };
   };
 
-  const now = new Date();
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  // Bornes de la période actuellement sélectionnée (même logique que getFilteredDataByTimeRange)
+  const getCurrentPeriodBounds = () => {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    let start: Date;
 
-  const thisMonth = getPeriodStats(startOfThisMonth, now);
-  const lastMonth = getPeriodStats(startOfLastMonth, endOfLastMonth);
+    switch (timeRange) {
+      case '7days':
+        start = new Date();
+        start.setDate(end.getDate() - 7);
+        break;
+      case '30days':
+        start = new Date();
+        start.setDate(end.getDate() - 30);
+        break;
+      case '90days':
+        start = new Date();
+        start.setDate(end.getDate() - 90);
+        break;
+      case '1year':
+        start = new Date();
+        start.setFullYear(end.getFullYear() - 1);
+        break;
+      case 'all':
+      default:
+        start = new Date(0);
+        break;
+    }
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  };
 
-  // % de variation entre deux valeurs (gère le cas où le mois dernier était à 0)
+  const comparisonLabels: Record<TimeRange, string> = {
+    '7days': 'vs semaine dernière',
+    '30days': 'vs mois dernier',
+    '90days': 'vs trimestre dernier',
+    '1year': 'vs année dernière',
+    'all': '',
+  };
+
+  const { start: currentStart, end: currentEnd } = getCurrentPeriodBounds();
+  const durationMs = currentEnd.getTime() - currentStart.getTime();
+  const previousEnd = new Date(currentStart.getTime() - 1);
+  const previousStart = new Date(currentStart.getTime() - durationMs);
+
+  const currentPeriod = getPeriodStats(currentStart, currentEnd);
+  const previousPeriod = timeRange === 'all' ? null : getPeriodStats(previousStart, previousEnd);
+
+  // % de variation entre deux valeurs (gère le cas où la période précédente était à 0)
   const pctChange = (current: number, previous: number) => {
     if (previous === 0) return current === 0 ? 0 : 100;
     return ((current - previous) / Math.abs(previous)) * 100;
   };
 
-  const monthComparisons = {
-    profit: pctChange(thisMonth.totalNetProfit, lastMonth.totalNetProfit),
-    ca: pctChange(thisMonth.ca, lastMonth.ca),
-    frozenMoney: pctChange(thisMonth.frozenMoney, lastMonth.frozenMoney),
-    totalSold: pctChange(thisMonth.totalSold, lastMonth.totalSold),
-    margin: pctChange(thisMonth.marginPct, lastMonth.marginPct),
-    repairCost: pctChange(thisMonth.repairCost, lastMonth.repairCost),
-  };
+  const comparisons = previousPeriod
+    ? {
+        profit: pctChange(currentPeriod.totalNetProfit, previousPeriod.totalNetProfit),
+        ca: pctChange(currentPeriod.ca, previousPeriod.ca),
+        totalSold: pctChange(currentPeriod.totalSold, previousPeriod.totalSold),
+        margin: pctChange(currentPeriod.marginPct, previousPeriod.marginPct),
+      }
+    : null;
 
   // Badge de comparaison réutilisable (flèche + % + couleur)
-  const ComparisonBadge = ({ value, inverse = false }: { value: number; inverse?: boolean }) => {
-    const isPositive = inverse ? value <= 0 : value >= 0;
-    const Icon = value >= 0 ? ArrowUpRight : ArrowDownRight;
+  const ComparisonBadge = ({ value }: { value: number }) => {
+    const isPositive = value >= 0;
+    const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
     return (
       <span
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
@@ -282,7 +323,7 @@ export function Analytics() {
         }`}
       >
         <Icon size={12} />
-        {value >= 0 ? '+' : ''}{value.toFixed(0)}%
+        {isPositive ? '+' : ''}{value.toFixed(0)}%
       </span>
     );
   };
@@ -357,10 +398,12 @@ export function Analytics() {
             {stats.totalNetProfit.toFixed(2)} €
           </p>
           <p className="text-sm text-gray-400 mt-1">Vente - (Achat + Réparations)</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.profit} />
-            <span className="text-xs text-gray-500">vs mois dernier</span>
-          </div>
+          {comparisons && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+              <ComparisonBadge value={comparisons.profit} />
+              <span className="text-xs text-gray-500">{comparisonLabels[timeRange]}</span>
+            </div>
+          )}
         </div>
 
         {/* 2. CHIFFRE D'AFFAIRES */}
@@ -373,10 +416,12 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-white">{stats.ca.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Total des ventes</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.ca} />
-            <span className="text-xs text-gray-500">vs mois dernier</span>
-          </div>
+          {comparisons && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+              <ComparisonBadge value={comparisons.ca} />
+              <span className="text-xs text-gray-500">{comparisonLabels[timeRange]}</span>
+            </div>
+          )}
         </div>
 
         {/* 3. ARGENT GELÉ */}
@@ -389,10 +434,6 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-amber-400">{stats.frozenMoney.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Stock non vendu</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.frozenMoney} />
-            <span className="text-xs text-gray-500">vs mois dernier</span>
-          </div>
         </div>
 
         {/* 4. TÉLÉPHONES ACHETÉS / VENDUS */}
@@ -407,10 +448,12 @@ export function Analytics() {
             {stats.totalPurchased} / {stats.totalSold}
           </p>
           <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.totalSold} />
-            <span className="text-xs text-gray-500">ventes vs mois dernier</span>
-          </div>
+          {comparisons && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+              <ComparisonBadge value={comparisons.totalSold} />
+              <span className="text-xs text-gray-500">ventes {comparisonLabels[timeRange]}</span>
+            </div>
+          )}
         </div>
 
         {/* 5. MARGE MOYENNE (%) */}
@@ -425,10 +468,12 @@ export function Analytics() {
             {stats.averageMarginPercentage.toFixed(1)} %
           </p>
           <p className="text-sm text-gray-400 mt-1">Bénéfice net / CA</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.margin} />
-            <span className="text-xs text-gray-500">vs mois dernier</span>
-          </div>
+          {comparisons && (
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+              <ComparisonBadge value={comparisons.margin} />
+              <span className="text-xs text-gray-500">{comparisonLabels[timeRange]}</span>
+            </div>
+          )}
         </div>
 
         {/* 6. COÛT DES RÉPARATIONS */}
@@ -441,10 +486,6 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
-            <ComparisonBadge value={monthComparisons.repairCost} inverse />
-            <span className="text-xs text-gray-500">vs mois dernier</span>
-          </div>
         </div>
       </div>
     </div>
