@@ -256,10 +256,30 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loading) {
+      console.log('⚠️ Soumission déjà en cours, ignorée');
+      return;
+    }
+
     setLoading(true);
 
     try {
       let repairId = repair?.id;
+
+      // Calcul du coût final DIRECTEMENT depuis la liste des pièces au moment T,
+      // sans jamais faire confiance à formData.cost qui peut avoir dérivé entre-temps.
+      const piecesTotal = usedPieces.reduce(
+        (sum, p) => sum + p.quantity_used * (p.stock_piece.purchase_price || 0),
+        0
+      );
+      // S'il y a des pièces, le coût final = leur somme (garantie anti-doublage).
+      // S'il n'y en a aucune, on garde la valeur saisie manuellement (ex: main d'œuvre seule).
+      const finalCost = usedPieces.length > 0 ? piecesTotal : formData.cost;
+
+      console.log('🧮 formData.cost au moment du submit:', formData.cost);
+      console.log('🧮 Total recalculé depuis usedPieces:', piecesTotal);
+      console.log('🧮 Coût final utilisé pour la sauvegarde:', finalCost);
 
       // 1. Sauvegarder/Mettre à jour la réparation
       if (repair?.id) {
@@ -270,7 +290,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             description: formData.description,
             repair_list: formData.repair_list,
             status: formData.status,
-            cost: formData.cost,
+            cost: finalCost,
           })
           .eq('id', repair.id);
 
@@ -284,7 +304,7 @@ export const RepairModal: React.FC<RepairModalProps> = ({ repair, phones, onClos
             repair_list: formData.repair_list,
             status: formData.status,
             user_id: userId!,
-            cost: formData.cost,
+            cost: finalCost,
             technician: null,
             photo_url: null,
           })
