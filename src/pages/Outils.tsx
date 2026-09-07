@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wrench, AlertTriangle, Bot, ArrowRight } from 'lucide-react';
+import { Wrench, AlertTriangle, Tag, ArrowRight } from 'lucide-react';
 
 interface ToolCard {
   id: string;
@@ -16,17 +16,17 @@ const TOOLS: ToolCard[] = [
     id: 'panic-pro',
     icon: AlertTriangle,
     title: 'Panic Pro',
-    description: 'Bientôt disponible.',
+    description: 'Analyse un panic log iPhone pour identifier la panne probable.',
     path: '/outils/panic-pro',
     gradient: 'from-orange-500 to-red-500',
   },
   {
-    id: 'flow-ia',
-    icon: Bot,
-    title: 'Flow IA',
-    description: 'Assistant IA pour tes questions sur les réparations et les prix.',
-    path: '/outils/flow-ia',
-    gradient: 'from-violet-500 to-fuchsia-500',
+    id: 'price-estimator',
+    icon: Tag,
+    title: 'Estimation Prix',
+    description: 'Prix de vente estimé selon modèle, stockage et état.',
+    path: '/outils/estimation-prix',
+    gradient: 'from-emerald-500 to-teal-500',
   },
 ];
 
