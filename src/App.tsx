@@ -15,6 +15,7 @@ import Orders from './pages/Orders';
 import Outils from './pages/Outils';
 import PanicPro from './pages/PanicPro';
 import PriceEstimator from './pages/PriceEstimator';
+import AdGenerator from './pages/AdGenerator';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isLocked } = useAuth();
@@ -119,6 +120,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <PriceEstimator />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/outils/generateur-annonces"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdGenerator />
             </Layout>
           </ProtectedRoute>
         }
