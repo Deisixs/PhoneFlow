@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Tag, Smartphone, Package, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Tag, Smartphone, Package, Sparkles, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,9 @@ import { useAuth } from '../contexts/AuthContext';
 // À corriger toi-même avec tes ventes réelles au fil du temps (facile à
 // éditer ci-dessous — un seul chiffre par modèle).
 // ============================================================================
+// ⚠️ PENSE À METTRE À JOUR CETTE DATE à chaque fois que tu ajustes BASE_PRICES ci-dessous
+const PRICE_GRID_LAST_UPDATED = '2026-09-07'; // format AAAA-MM-JJ
+
 const BASE_PRICES: Record<string, number> = {
   'iPhone X': 70,
   'iPhone XS': 80,
@@ -81,6 +84,11 @@ interface Phone {
 export default function PriceEstimator() {
   const navigate = useNavigate();
   const { userId } = useAuth();
+
+  const daysSinceUpdate = Math.floor(
+    (Date.now() - new Date(PRICE_GRID_LAST_UPDATED).getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const isStale = daysSinceUpdate > 60;
 
   const [mode, setMode] = useState<'inventory' | 'manual'>('inventory');
   const [inventoryPhones, setInventoryPhones] = useState<Phone[]>([]);
@@ -179,6 +187,25 @@ export default function PriceEstimator() {
           <h1 className="text-3xl font-bold text-white">Estimation Prix</h1>
           <p className="text-gray-400 mt-1">Prix de vente estimé selon modèle, stockage et état</p>
         </div>
+      </div>
+
+      {/* Fraîcheur de la grille de prix */}
+      <div
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm w-fit ${
+          isStale
+            ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+            : 'bg-white/5 border border-white/10 text-gray-400'
+        }`}
+      >
+        {isStale ? <AlertCircle className="w-4 h-4 shrink-0" /> : <Clock className="w-4 h-4 shrink-0" />}
+        <span>
+          Grille de prix mise à jour le{' '}
+          <span className="text-white font-medium">
+            {new Date(PRICE_GRID_LAST_UPDATED).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+          {' '}({daysSinceUpdate} jour{daysSinceUpdate > 1 ? 's' : ''})
+          {isStale && ' — pense à la revoir, ça commence à dater'}
+        </span>
       </div>
 
       {/* Toggle mode */}
