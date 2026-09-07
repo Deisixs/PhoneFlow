@@ -12,6 +12,9 @@ import { Settings } from './pages/Settings';
 import Stock from './pages/Stock';
 import Materiel from './pages/Materiel';
 import Orders from './pages/Orders';
+import Outils from './pages/Outils';
+import PanicPro from './pages/PanicPro';
+import FlowIA from './pages/FlowIA';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading, isLocked } = useAuth();
@@ -86,6 +89,36 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Analytics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/outils"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Outils />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/outils/panic-pro"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PanicPro />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/outils/flow-ia"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FlowIA />
             </Layout>
           </ProtectedRoute>
         }
