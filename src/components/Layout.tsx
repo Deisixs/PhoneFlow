@@ -5,7 +5,7 @@ import {
   Wrench,
   BarChart3,
   Settings,
-  SlidersHorizontal
+  SlidersHorizontal,
   QrCode,
   LogOut,
   Lock,
