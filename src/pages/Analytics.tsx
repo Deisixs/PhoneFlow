@@ -9,7 +9,9 @@ import {
   ChevronDown,
   Target,
   Lock,
-  Percent
+  Percent,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -206,6 +208,85 @@ export function Analytics() {
 
   const stats = calculateStats();
 
+  // ===== Comparatif "ce mois vs mois dernier" (indépendant du filtre de période ci-dessus) =====
+
+  const getPeriodStats = (startDate: Date, endDate: Date) => {
+    const phonesByPurchase = phones.filter((p) => {
+      const d = new Date(p.purchase_date);
+      return d >= startDate && d <= endDate;
+    });
+
+    const phonesBySale = phones.filter((p) => {
+      if (!isPhoneSold(p) || !p.sale_date) return false;
+      const d = new Date(p.sale_date);
+      return d >= startDate && d <= endDate;
+    });
+
+    const periodRepairs = repairs.filter((r) => {
+      const d = new Date(r.created_at);
+      return d >= startDate && d <= endDate;
+    });
+
+    const totalPurchased = phonesByPurchase.length;
+    const totalSold = phonesBySale.length;
+    const ca = phonesBySale.reduce((sum, p) => sum + Number(p.sale_price || 0), 0);
+
+    const netProfitList = phonesBySale.map((phone) => {
+      const phoneRepairs = repairs.filter((r) => r.phone_id === phone.id && r.status === 'completed');
+      const repairCosts = phoneRepairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
+      return Number(phone.sale_price || 0) - Number(phone.purchase_price) - repairCosts;
+    });
+    const totalNetProfit = netProfitList.reduce((sum, v) => sum + v, 0);
+    const marginPct = ca > 0 ? (totalNetProfit / ca) * 100 : 0;
+
+    const frozenMoney = phonesByPurchase
+      .filter((p) => !isPhoneSold(p))
+      .reduce((sum, p) => sum + Number(p.purchase_price), 0);
+
+    const repairCost = periodRepairs.reduce((sum, r) => sum + Number(r.cost || 0), 0);
+
+    return { totalPurchased, totalSold, ca, totalNetProfit, marginPct, frozenMoney, repairCost };
+  };
+
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+  const thisMonth = getPeriodStats(startOfThisMonth, now);
+  const lastMonth = getPeriodStats(startOfLastMonth, endOfLastMonth);
+
+  // % de variation entre deux valeurs (gère le cas où le mois dernier était à 0)
+  const pctChange = (current: number, previous: number) => {
+    if (previous === 0) return current === 0 ? 0 : 100;
+    return ((current - previous) / Math.abs(previous)) * 100;
+  };
+
+  const monthComparisons = {
+    profit: pctChange(thisMonth.totalNetProfit, lastMonth.totalNetProfit),
+    ca: pctChange(thisMonth.ca, lastMonth.ca),
+    frozenMoney: pctChange(thisMonth.frozenMoney, lastMonth.frozenMoney),
+    totalSold: pctChange(thisMonth.totalSold, lastMonth.totalSold),
+    margin: pctChange(thisMonth.marginPct, lastMonth.marginPct),
+    repairCost: pctChange(thisMonth.repairCost, lastMonth.repairCost),
+  };
+
+  // Badge de comparaison réutilisable (flèche + % + couleur)
+  const ComparisonBadge = ({ value, inverse = false }: { value: number; inverse?: boolean }) => {
+    const isPositive = inverse ? value <= 0 : value >= 0;
+    const Icon = value >= 0 ? ArrowUpRight : ArrowDownRight;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
+          isPositive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+        }`}
+      >
+        <Icon size={12} />
+        {value >= 0 ? '+' : ''}{value.toFixed(0)}%
+      </span>
+    );
+  };
+
   const timeRangeLabels: Record<TimeRange, string> = {
     '7days': '7 derniers jours',
     '30days': '30 derniers jours',
@@ -276,6 +357,10 @@ export function Analytics() {
             {stats.totalNetProfit.toFixed(2)} €
           </p>
           <p className="text-sm text-gray-400 mt-1">Vente - (Achat + Réparations)</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.profit} />
+            <span className="text-xs text-gray-500">vs mois dernier</span>
+          </div>
         </div>
 
         {/* 2. CHIFFRE D'AFFAIRES */}
@@ -288,6 +373,10 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-white">{stats.ca.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Total des ventes</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.ca} />
+            <span className="text-xs text-gray-500">vs mois dernier</span>
+          </div>
         </div>
 
         {/* 3. ARGENT GELÉ */}
@@ -300,6 +389,10 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-amber-400">{stats.frozenMoney.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Stock non vendu</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.frozenMoney} />
+            <span className="text-xs text-gray-500">vs mois dernier</span>
+          </div>
         </div>
 
         {/* 4. TÉLÉPHONES ACHETÉS / VENDUS */}
@@ -314,6 +407,10 @@ export function Analytics() {
             {stats.totalPurchased} / {stats.totalSold}
           </p>
           <p className="text-sm text-gray-400 mt-1">Achetés / Vendus</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.totalSold} />
+            <span className="text-xs text-gray-500">ventes vs mois dernier</span>
+          </div>
         </div>
 
         {/* 5. MARGE MOYENNE (%) */}
@@ -328,6 +425,10 @@ export function Analytics() {
             {stats.averageMarginPercentage.toFixed(1)} %
           </p>
           <p className="text-sm text-gray-400 mt-1">Bénéfice net / CA</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.margin} />
+            <span className="text-xs text-gray-500">vs mois dernier</span>
+          </div>
         </div>
 
         {/* 6. COÛT DES RÉPARATIONS */}
@@ -340,6 +441,10 @@ export function Analytics() {
           </div>
           <p className="text-3xl font-bold text-white">{stats.totalRepairCost.toFixed(2)} €</p>
           <p className="text-sm text-gray-400 mt-1">Coût des réparations</p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <ComparisonBadge value={monthComparisons.repairCost} inverse />
+            <span className="text-xs text-gray-500">vs mois dernier</span>
+          </div>
         </div>
       </div>
     </div>
