@@ -24,6 +24,7 @@ interface Phone {
   sale_date: string | null;
   is_sold: boolean;
   is_incoming: boolean;
+  is_listed: boolean;
   qr_code: string | null;
   created_at: string;
   archived: boolean;
@@ -119,18 +120,25 @@ export const Inventory: React.FC = () => {
     const hasActiveRepair = phoneRepairs.some((r) => r.status === 'in_progress');
     if (hasActiveRepair) return 'repair';
     if (phone.is_incoming) return 'incoming';
+    if (phone.is_listed) return 'listed';
     return 'available';
   };
 
-  // Bascule entre "En stock" et "Arrivage" (uniquement possible si pas vendu / pas en réparation)
-  const handleToggleIncoming = async (phone: Phone) => {
-    try {
-      const newValue = !phone.is_incoming;
-      // Quand on repasse en "En stock", on efface le numéro de suivi (plus utile)
-      const updates: Partial<Phone> = newValue
-        ? { is_incoming: newValue }
-        : { is_incoming: newValue, tracking_link: '' };
+  // Bascule entre "Arrivage" / "En stock" / "En vente" (uniquement si pas vendu / pas en réparation)
+  const handleSetAvailability = async (phone: Phone, target: 'incoming' | 'available' | 'listed') => {
+    const currentStatus = getPhoneStatus(phone);
+    if (currentStatus === target) return;
 
+    const updates: Partial<Phone> = {
+      is_incoming: target === 'incoming',
+      is_listed: target === 'listed',
+    };
+    // On efface le lien de suivi dès qu'on quitte "Arrivage"
+    if (target !== 'incoming') {
+      updates.tracking_link = '';
+    }
+
+    try {
       const { error } = await supabase
         .from('phones')
         .update(updates)
@@ -205,22 +213,35 @@ export const Inventory: React.FC = () => {
         return <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full shadow-lg shadow-yellow-500/10 uppercase">En réparation</span>;
       case 'incoming':
         return <span className="px-3 py-1 bg-orange-500/20 text-orange-400 text-xs font-semibold rounded-full shadow-lg shadow-orange-500/10 uppercase">Arrivage</span>;
+      case 'listed':
+        return <span className="px-3 py-1 bg-fuchsia-500/20 text-fuchsia-400 text-xs font-semibold rounded-full shadow-lg shadow-fuchsia-500/10 uppercase">En vente</span>;
       default:
         return <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-full shadow-lg shadow-blue-500/10 uppercase">En stock</span>;
     }
   };
 
-  // Toggle "En stock" / "Arrivage" cliquable — seulement quand le téléphone n'est ni vendu ni en réparation
+  // Toggle "Arrivage" / "En stock" / "En vente" cliquable — seulement quand le téléphone n'est ni vendu ni en réparation
   const renderStatusToggle = (phone: Phone, status: string) => {
-    if (status !== 'available' && status !== 'incoming') {
+    if (status !== 'available' && status !== 'incoming' && status !== 'listed') {
       return getStatusBadge(status);
     }
 
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap justify-end">
         <button
           type="button"
-          onClick={() => status !== 'available' && handleToggleIncoming(phone)}
+          onClick={() => handleSetAvailability(phone, 'incoming')}
+          className={`px-3 py-1 text-xs font-semibold rounded-full uppercase transition-all ${
+            status === 'incoming'
+              ? 'bg-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/10'
+              : 'bg-white/5 text-gray-500 hover:bg-orange-500/10 hover:text-orange-400'
+          }`}
+        >
+          Arrivage
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSetAvailability(phone, 'available')}
           className={`px-3 py-1 text-xs font-semibold rounded-full uppercase transition-all ${
             status === 'available'
               ? 'bg-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/10'
@@ -231,14 +252,14 @@ export const Inventory: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={() => status !== 'incoming' && handleToggleIncoming(phone)}
+          onClick={() => handleSetAvailability(phone, 'listed')}
           className={`px-3 py-1 text-xs font-semibold rounded-full uppercase transition-all ${
-            status === 'incoming'
-              ? 'bg-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/10'
-              : 'bg-white/5 text-gray-500 hover:bg-orange-500/10 hover:text-orange-400'
+            status === 'listed'
+              ? 'bg-fuchsia-500/20 text-fuchsia-400 shadow-lg shadow-fuchsia-500/10'
+              : 'bg-white/5 text-gray-500 hover:bg-fuchsia-500/10 hover:text-fuchsia-400'
           }`}
         >
-          Arrivage
+          En vente
         </button>
       </div>
     );
