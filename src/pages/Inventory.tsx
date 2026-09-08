@@ -116,7 +116,7 @@ export const Inventory: React.FC = () => {
   const getPhoneStatus = (phone: Phone) => {
     if (phone.is_sold) return 'sold';
     const phoneRepairs = repairs.filter((r) => r.phone_id === phone.id);
-    const hasActiveRepair = phoneRepairs.some((r) => r.status !== 'completed');
+    const hasActiveRepair = phoneRepairs.some((r) => r.status === 'in_progress');
     if (hasActiveRepair) return 'repair';
     if (phone.is_incoming) return 'incoming';
     return 'available';
