@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare, Upload, Truck, Edit2, Check
+  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare, Upload, Truck, Edit2, Check, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +30,7 @@ interface Phone {
   battery_health: number | null;
   parts_purchased: string;
   tracking_number: string;
+  tracking_link: string;
 }
 
 interface Repair {
@@ -129,7 +130,7 @@ export const Inventory: React.FC = () => {
       // Quand on repasse en "En stock", on efface le numéro de suivi (plus utile)
       const updates: Partial<Phone> = newValue
         ? { is_incoming: newValue }
-        : { is_incoming: newValue, tracking_number: '' };
+        : { is_incoming: newValue, tracking_number: '', tracking_link: '' };
 
       const { error } = await supabase
         .from('phones')
@@ -146,29 +147,31 @@ export const Inventory: React.FC = () => {
     }
   };
 
-  // ===== Édition inline du numéro de suivi =====
+  // ===== Édition inline du numéro/lien de suivi =====
   const [editingTrackingId, setEditingTrackingId] = useState<string | null>(null);
   const [trackingDraft, setTrackingDraft] = useState('');
+  const [linkDraft, setLinkDraft] = useState('');
 
   const startEditTracking = (phone: Phone) => {
     setEditingTrackingId(phone.id);
     setTrackingDraft(phone.tracking_number || '');
+    setLinkDraft(phone.tracking_link || '');
   };
 
   const saveTracking = async (phoneId: string) => {
     try {
       const { error } = await supabase
         .from('phones')
-        .update({ tracking_number: trackingDraft })
+        .update({ tracking_number: trackingDraft, tracking_link: linkDraft })
         .eq('id', phoneId);
 
       if (error) throw error;
 
       setPhones((prev) =>
-        prev.map((p) => (p.id === phoneId ? { ...p, tracking_number: trackingDraft } : p))
+        prev.map((p) => (p.id === phoneId ? { ...p, tracking_number: trackingDraft, tracking_link: linkDraft } : p))
       );
       setEditingTrackingId(null);
-      showToast('Numéro de suivi mis à jour', 'success');
+      showToast('Suivi mis à jour', 'success');
     } catch {
       showToast('Erreur lors de la sauvegarde', 'error');
     }
@@ -368,33 +371,67 @@ export const Inventory: React.FC = () => {
                 {renderStatusToggle(phone, status)}
               </div>
 
-              {/* Numéro de suivi — visible uniquement en Arrivage */}
+              {/* Numéro / lien de suivi — visible uniquement en Arrivage */}
               {status === 'incoming' && (
-                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-black/20 rounded-xl">
-                  <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                <div className="mb-3 px-3 py-2 bg-black/20 rounded-xl space-y-1.5">
                   {editingTrackingId === phone.id ? (
                     <>
-                      <input
-                        type="text"
-                        value={trackingDraft}
-                        onChange={(e) => setTrackingDraft(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && saveTracking(phone.id)}
-                        autoFocus
-                        placeholder="Numéro de suivi"
-                        className="flex-1 bg-transparent text-xs text-white focus:outline-none border-b border-violet-500/40 min-w-0"
-                      />
-                      <button onClick={() => saveTracking(phone.id)} className="text-emerald-400 hover:text-emerald-300 shrink-0">
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <input
+                          type="text"
+                          value={trackingDraft}
+                          onChange={(e) => setTrackingDraft(e.target.value)}
+                          placeholder="Numéro de suivi"
+                          className="flex-1 bg-transparent text-xs text-white focus:outline-none border-b border-violet-500/40 min-w-0"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <input
+                          type="url"
+                          value={linkDraft}
+                          onChange={(e) => setLinkDraft(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && saveTracking(phone.id)}
+                          placeholder="https://lien-de-suivi.com/..."
+                          className="flex-1 bg-transparent text-xs text-white focus:outline-none border-b border-violet-500/40 min-w-0"
+                        />
+                        <button onClick={() => saveTracking(phone.id)} className="text-emerald-400 hover:text-emerald-300 shrink-0">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-xs text-gray-300 font-mono truncate">
-                        {phone.tracking_number || <span className="text-gray-600 italic font-sans">Pas de suivi</span>}
-                      </span>
-                      <button onClick={() => startEditTracking(phone)} className="text-gray-500 hover:text-violet-400 transition shrink-0">
-                        <Edit2 className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <span className="flex-1 text-xs text-gray-300 font-mono truncate">
+                          {phone.tracking_number || <span className="text-gray-600 italic font-sans">Pas de numéro</span>}
+                        </span>
+                        <button onClick={() => startEditTracking(phone)} className="text-gray-500 hover:text-violet-400 transition shrink-0">
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        {phone.tracking_link ? (
+                          <a
+                            href={phone.tracking_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-xs text-violet-400 hover:text-violet-300 hover:underline truncate transition"
+                          >
+                            Ouvrir le suivi colis
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => startEditTracking(phone)}
+                            className="flex-1 text-left text-xs text-gray-600 italic hover:text-gray-400 transition"
+                          >
+                            Ajouter un lien de suivi
+                          </button>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
