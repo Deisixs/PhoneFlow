@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare, Upload
+  Plus, Search, Filter, Eye, Edit, Trash2, Archive, MessageSquare, Upload, Truck, Edit2, Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,7 @@ interface Phone {
   archived: boolean;
   battery_health: number | null;
   parts_purchased: string;
+  tracking_number: string;
 }
 
 interface Repair {
@@ -125,18 +126,51 @@ export const Inventory: React.FC = () => {
   const handleToggleIncoming = async (phone: Phone) => {
     try {
       const newValue = !phone.is_incoming;
+      // Quand on repasse en "En stock", on efface le numéro de suivi (plus utile)
+      const updates: Partial<Phone> = newValue
+        ? { is_incoming: newValue }
+        : { is_incoming: newValue, tracking_number: '' };
+
       const { error } = await supabase
         .from('phones')
-        .update({ is_incoming: newValue })
+        .update(updates)
         .eq('id', phone.id);
 
       if (error) throw error;
 
       setPhones((prev) =>
-        prev.map((p) => (p.id === phone.id ? { ...p, is_incoming: newValue } : p))
+        prev.map((p) => (p.id === phone.id ? { ...p, ...updates } : p))
       );
     } catch {
       showToast('Erreur lors du changement de statut', 'error');
+    }
+  };
+
+  // ===== Édition inline du numéro de suivi =====
+  const [editingTrackingId, setEditingTrackingId] = useState<string | null>(null);
+  const [trackingDraft, setTrackingDraft] = useState('');
+
+  const startEditTracking = (phone: Phone) => {
+    setEditingTrackingId(phone.id);
+    setTrackingDraft(phone.tracking_number || '');
+  };
+
+  const saveTracking = async (phoneId: string) => {
+    try {
+      const { error } = await supabase
+        .from('phones')
+        .update({ tracking_number: trackingDraft })
+        .eq('id', phoneId);
+
+      if (error) throw error;
+
+      setPhones((prev) =>
+        prev.map((p) => (p.id === phoneId ? { ...p, tracking_number: trackingDraft } : p))
+      );
+      setEditingTrackingId(null);
+      showToast('Numéro de suivi mis à jour', 'success');
+    } catch {
+      showToast('Erreur lors de la sauvegarde', 'error');
     }
   };
 
@@ -333,6 +367,38 @@ export const Inventory: React.FC = () => {
                 </div>
                 {renderStatusToggle(phone, status)}
               </div>
+
+              {/* Numéro de suivi — visible uniquement en Arrivage */}
+              {status === 'incoming' && (
+                <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-black/20 rounded-xl">
+                  <Truck className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                  {editingTrackingId === phone.id ? (
+                    <>
+                      <input
+                        type="text"
+                        value={trackingDraft}
+                        onChange={(e) => setTrackingDraft(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && saveTracking(phone.id)}
+                        autoFocus
+                        placeholder="Numéro de suivi"
+                        className="flex-1 bg-transparent text-xs text-white focus:outline-none border-b border-violet-500/40 min-w-0"
+                      />
+                      <button onClick={() => saveTracking(phone.id)} className="text-emerald-400 hover:text-emerald-300 shrink-0">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-xs text-gray-300 font-mono truncate">
+                        {phone.tracking_number || <span className="text-gray-600 italic font-sans">Pas de suivi</span>}
+                      </span>
+                      <button onClick={() => startEditTracking(phone)} className="text-gray-500 hover:text-violet-400 transition shrink-0">
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* IMEI / Achat / Date sur une seule ligne */}
               <div className="grid grid-cols-3 gap-2 py-3 border-y border-white/5 mb-3">
