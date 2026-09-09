@@ -73,7 +73,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex flex-col h-full">
 
           {/* Logo */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
                 <Smartphone className="w-6 h-6 text-white" />
@@ -85,6 +85,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <p className="text-xs text-gray-400">Gestion Pro</p>
               </div>
             </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* NAVIGATION */}
@@ -139,9 +145,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* MAIN CONTENT */}
       <div className="flex-1 ml-0 lg:ml-72 relative z-10">
 
-        {/* 🔥 HEADER SUPPRIMÉ DONC PLUS AUCUNE BANDE EN HAUT */}
+        {/* BARRE MOBILE — visible uniquement en dessous de lg, permet d'ouvrir le menu */}
+        <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 backdrop-blur-xl bg-black/60 border-b border-white/10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+              <Smartphone className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+              PhoneFlow
+            </span>
+          </div>
+        </div>
 
-        <main className="p-6">
+        <main className="p-4 md:p-6">
           {children}
         </main>
 
