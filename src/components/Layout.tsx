@@ -59,7 +59,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-black text-white flex">
+    <div className="min-h-screen w-full bg-black text-white flex overflow-x-hidden">
 
       {/* FOND GLOBAL */}
       <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black pointer-events-none" />
@@ -143,7 +143,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 ml-0 lg:ml-72 relative z-10">
+      <div className="flex-1 ml-0 lg:ml-72 relative z-10 min-w-0 overflow-x-hidden">
 
         {/* BARRE MOBILE — visible uniquement en dessous de lg, permet d'ouvrir le menu */}
         <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 backdrop-blur-xl bg-black/60 border-b border-white/10">
