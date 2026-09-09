@@ -328,21 +328,21 @@ export const Inventory: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Inventaire</h1>
           <p className="text-gray-400 mt-1">Gérez votre collection de smartphones</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-semibold transition"
           >
             <Upload size={20} /> Importer
           </button>
           <button
             onClick={() => { setSelectedPhone(null); setShowModal(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition shadow-lg shadow-violet-600/20"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition shadow-lg shadow-violet-600/20"
           >
             <Plus size={20} /> Ajouter un téléphone
           </button>
@@ -374,7 +374,7 @@ export const Inventory: React.FC = () => {
           const profitPercentage = getProfitPercentage(phone);
           return (
             <div key={phone.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300 group">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 bg-violet-600/20 rounded-lg flex items-center justify-center text-violet-400 shrink-0">
                     <Edit size={16} />
