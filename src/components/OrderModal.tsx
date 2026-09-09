@@ -25,6 +25,7 @@ interface ExistingOrder {
   carrier: string;
   supplier: string;
   notes: string;
+  shipping_cost: number;
   items: {
     id: string;
     name: string;
@@ -64,6 +65,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
   const [showOrderSupplierList, setShowOrderSupplierList] = useState(false);
   const orderSupplierRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState(order?.notes || '');
+  const [shippingCost, setShippingCost] = useState(order?.shipping_cost?.toString() || '');
   const [items, setItems] = useState<OrderItem[]>(
     order
       ? order.items.map((it) => ({
@@ -123,6 +125,11 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
 
     const validItems = items.filter((it) => it.name.trim() && parseFloat(it.purchase_price) >= 0);
 
+    // Répartition des frais de port : montant total / nombre total d'unités dans la commande
+    const shippingCostNum = parseFloat(shippingCost) || 0;
+    const totalUnits = validItems.reduce((sum, it) => sum + (parseInt(it.quantity) || 1), 0);
+    const shippingPerUnit = totalUnits > 0 ? shippingCostNum / totalUnits : 0;
+
     setSubmitting(true);
     try {
       if (isEditing && order) {
@@ -131,7 +138,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
         // 1. Met à jour les infos de la commande
         const { error: updateError } = await supabase
           .from('orders')
-          .update({ tracking_number: trackingNumber, tracking_link: trackingLink, carrier, supplier, notes })
+          .update({ tracking_number: trackingNumber, tracking_link: trackingLink, carrier, supplier, notes, shipping_cost: shippingCostNum })
           .eq('id', order.id);
 
         if (updateError) throw updateError;
@@ -153,9 +160,10 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
         for (const item of validItems) {
           const quantity = parseInt(item.quantity) || 1;
           const price = parseFloat(item.purchase_price) || 0;
+          const landedPrice = price + shippingPerUnit; // prix d'achat + part des frais de port
 
           if (item.id) {
-            // Pièce existante -> update
+            // Pièce existante -> update (prix brut dans order_items, prix de revient dans le stock)
             await supabase
               .from('order_items')
               .update({
@@ -174,7 +182,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
                 .update({
                   name: item.name,
                   description: item.description,
-                  purchase_price: price,
+                  purchase_price: landedPrice,
                   quantity,
                   supplier: item.supplier,
                   supplier_link: item.supplier_link,
@@ -182,14 +190,14 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
                 .eq('id', item.stock_piece_id);
             }
           } else {
-            // Nouvelle pièce -> création stock + order_item
+            // Nouvelle pièce -> création stock (prix de revient) + order_item (prix brut)
             const { data: stockPiece, error: stockError } = await supabase
               .from('stock_pieces')
               .insert({
                 user_id: userId!,
                 name: item.name,
                 description: item.description,
-                purchase_price: price,
+                purchase_price: landedPrice,
                 quantity,
                 supplier: item.supplier,
                 supplier_link: item.supplier_link,
@@ -228,6 +236,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
             carrier,
             supplier,
             notes,
+            shipping_cost: shippingCostNum,
             status: 'en_transit',
           })
           .select()
@@ -238,6 +247,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
         for (const item of validItems) {
           const quantity = parseInt(item.quantity) || 1;
           const price = parseFloat(item.purchase_price) || 0;
+          const landedPrice = price + shippingPerUnit; // prix d'achat + part des frais de port
 
           const { data: stockPiece, error: stockError } = await supabase
             .from('stock_pieces')
@@ -245,7 +255,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
               user_id: userId!,
               name: item.name,
               description: item.description,
-              purchase_price: price,
+              purchase_price: landedPrice,
               quantity,
               supplier: item.supplier,
               supplier_link: item.supplier_link,
@@ -505,9 +515,34 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
 
             {totalValue > 0 && (
               <div className="mt-3 flex items-center justify-between px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl">
-                <span className="text-sm text-gray-300">Valeur totale de la commande</span>
+                <span className="text-sm text-gray-300">Valeur totale des pièces</span>
                 <span className="text-sm font-bold text-violet-300">{totalValue.toFixed(2)}€</span>
               </div>
+            )}
+          </div>
+
+          {/* Frais de livraison */}
+          <div>
+            <label className="text-sm text-gray-300 mb-1 block">
+              Frais de livraison (€) <span className="text-gray-500">(répartis sur les pièces)</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={shippingCost}
+              onChange={(e) => setShippingCost(e.target.value)}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl
+              text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
+              placeholder="Ex : 5.90"
+            />
+            {parseFloat(shippingCost) > 0 && items.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1.5">
+                Soit +{(
+                  (parseFloat(shippingCost) || 0) /
+                  Math.max(1, items.reduce((sum, it) => sum + (parseInt(it.quantity) || 1), 0))
+                ).toFixed(2)}€ ajouté au prix de revient de chaque unité en stock.
+              </p>
             )}
           </div>
 
