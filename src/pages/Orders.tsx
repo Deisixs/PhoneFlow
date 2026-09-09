@@ -25,6 +25,7 @@ interface Order {
   status: 'en_transit' | 'recu';
   archived: boolean;
   notes: string;
+  shipping_cost: number;
   created_at: string;
 }
 
@@ -143,7 +144,7 @@ export default function Orders() {
     }
   };
 
-  const getOrderTotal = (orderId: string) => {
+  const getItemsSubtotal = (orderId: string) => {
     return (itemsByOrder[orderId] || []).reduce(
       (sum, it) => sum + it.purchase_price * it.quantity,
       0
@@ -331,9 +332,23 @@ export default function Orders() {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/5 mb-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wide">Total</span>
-                  <span className="text-sm font-bold text-violet-300">{getOrderTotal(order.id).toFixed(2)}€</span>
+                <div className="pt-3 border-t border-white/5 mb-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Sous-total pièces</span>
+                    <span className="text-xs text-gray-400">{getItemsSubtotal(order.id).toFixed(2)}€</span>
+                  </div>
+                  {order.shipping_cost > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Frais de port</span>
+                      <span className="text-xs text-gray-400">+{order.shipping_cost.toFixed(2)}€</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Total</span>
+                    <span className="text-sm font-bold text-violet-300">
+                      {(getItemsSubtotal(order.id) + (order.shipping_cost || 0)).toFixed(2)}€
+                    </span>
+                  </div>
                 </div>
 
                 {order.notes && (
@@ -385,6 +400,7 @@ export default function Orders() {
             carrier: orderToEdit.carrier,
             supplier: orderToEdit.supplier,
             notes: orderToEdit.notes,
+            shipping_cost: orderToEdit.shipping_cost || 0,
             items: itemsByOrder[orderToEdit.id] || [],
           }}
           onClose={() => setOrderToEdit(null)}
