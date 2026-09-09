@@ -114,31 +114,52 @@ export default function AdGenerator() {
 
     const condition = CONDITIONS.find((c) => c.id === conditionId)!;
     const accessoryLabels = ACCESSORY_OPTIONS.filter((a) => accessories.has(a.id)).map((a) => a.label);
+    const hasAccessories = accessories.size > 0;
 
     // ===== TITRE =====
-    const title = `${selectedPhone.model} ${selectedPhone.storage} ${selectedPhone.color} - ${condition.label}`;
+    let title: string;
+    if (platform === 'vinted') {
+      // ex: "iPhone 15 Pro 128GB Minuit" (+ "Accessoires" si au moins un coché)
+      title = `${selectedPhone.model} ${selectedPhone.storage} ${selectedPhone.color}`;
+      if (hasAccessories) title += ' + Accessoires';
+    } else {
+      title = `${selectedPhone.model} ${selectedPhone.storage} ${selectedPhone.color} - ${condition.label}`;
+    }
     setGeneratedTitle(title);
 
     // ===== DESCRIPTION =====
     const lines: string[] = [];
 
     if (platform === 'vinted') {
-      lines.push(`📱 ${selectedPhone.model} ${selectedPhone.storage} ${selectedPhone.color}`);
-      lines.push('');
-      lines.push(`État : ${condition.label}`);
+      // 📱iPhone 15 Pro 128GB Minuit en Bon état
+      lines.push(`📱${selectedPhone.model} ${selectedPhone.storage} ${selectedPhone.color} en ${condition.label}`);
       if (selectedPhone.battery_health !== null) {
+        lines.push('');
         lines.push(`🔋 Batterie : ${selectedPhone.battery_health}%`);
       }
-    } else {
-      lines.push(`${selectedPhone.model} — ${selectedPhone.storage} — ${selectedPhone.color}`);
       lines.push('');
-      lines.push(`État : ${condition.label}`);
-      if (selectedPhone.battery_health !== null) {
-        lines.push(`Batterie : ${selectedPhone.battery_health}%`);
+      if (accessoryLabels.length > 0) {
+        lines.push('📦 Inclus :');
+        accessoryLabels.forEach((a) => lines.push(`- ${a}`));
+        lines.push('');
+      } else {
+        lines.push('Téléphone seul (pas de boîte ni accessoires).');
+        lines.push('');
       }
+      lines.push('N\'hésitez pas si vous avez des questions ! Envoi rapide et soigné 📦✨');
+
+      setGeneratedDescription(lines.join('\n'));
+      return;
     }
 
-    // Détails à partir des notes / diagnostic
+    // ===== LeBonCoin (inchangé) =====
+    lines.push(`${selectedPhone.model} — ${selectedPhone.storage} — ${selectedPhone.color}`);
+    lines.push('');
+    lines.push(`État : ${condition.label}`);
+    if (selectedPhone.battery_health !== null) {
+      lines.push(`Batterie : ${selectedPhone.battery_health}%`);
+    }
+
     const details: string[] = [];
     if (selectedPhone.notes && selectedPhone.notes.trim()) {
       details.push(selectedPhone.notes.trim());
@@ -148,27 +169,21 @@ export default function AdGenerator() {
     }
     if (details.length > 0) {
       lines.push('');
-      lines.push(platform === 'vinted' ? '📋 Détails :' : 'Détails :');
+      lines.push('Détails :');
       details.forEach((d) => lines.push(`- ${d}`));
     }
 
-    // Accessoires
     if (accessoryLabels.length > 0) {
       lines.push('');
-      lines.push(platform === 'vinted' ? '📦 Inclus :' : 'Fourni avec :');
+      lines.push('Fourni avec :');
       accessoryLabels.forEach((a) => lines.push(`- ${a}`));
     } else {
       lines.push('');
       lines.push('Téléphone seul (pas de boîte ni accessoires).');
     }
 
-    // Phrase de clôture
     lines.push('');
-    if (platform === 'vinted') {
-      lines.push('N\'hésitez pas si vous avez des questions ! Envoi rapide et soigné 📦✨');
-    } else {
-      lines.push('Vendu en l\'état, testé et fonctionnel. Contactez-moi pour toute question ou pour convenir d\'une remise en main propre.');
-    }
+    lines.push('Vendu en l\'état, testé et fonctionnel. Contactez-moi pour toute question ou pour convenir d\'une remise en main propre.');
 
     setGeneratedDescription(lines.join('\n'));
   };
