@@ -6,6 +6,8 @@ import { useToast } from './Toast';
 
 const SUPPLIER_OPTIONS = ['Utopya', 'LCD-Phone', 'p2m'];
 const CARRIER_OPTIONS = ['Colissimo', 'Chronopost', 'Mondial Relay', 'DHL', 'UPS', 'DPD', 'GLS'];
+// TVA appliquée sur le prix de revient des pièces (payée et non récupérable en franchise en base)
+const VAT_RATE = 0.20;
 
 interface OrderItem {
   id?: string;
@@ -160,7 +162,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
         for (const item of validItems) {
           const quantity = parseInt(item.quantity) || 1;
           const price = parseFloat(item.purchase_price) || 0;
-          const landedPrice = price + shippingPerUnit; // prix d'achat + part des frais de port
+          const landedPrice = (price + shippingPerUnit) * (1 + VAT_RATE); // (prix d'achat + part des frais de port) x TVA
 
           if (item.id) {
             // Pièce existante -> update (prix brut dans order_items, prix de revient dans le stock)
@@ -247,7 +249,7 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
         for (const item of validItems) {
           const quantity = parseInt(item.quantity) || 1;
           const price = parseFloat(item.purchase_price) || 0;
-          const landedPrice = price + shippingPerUnit; // prix d'achat + part des frais de port
+          const landedPrice = (price + shippingPerUnit) * (1 + VAT_RATE); // (prix d'achat + part des frais de port) x TVA
 
           const { data: stockPiece, error: stockError } = await supabase
             .from('stock_pieces')
@@ -536,12 +538,15 @@ export default function OrderModal({ order, onClose, onCreated }: OrderModalProp
               text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500/40"
               placeholder="Ex : 5.90"
             />
-            {parseFloat(shippingCost) > 0 && items.length > 0 && (
+            {items.length > 0 && (
               <p className="text-xs text-gray-500 mt-1.5">
-                Soit +{(
-                  (parseFloat(shippingCost) || 0) /
-                  Math.max(1, items.reduce((sum, it) => sum + (parseInt(it.quantity) || 1), 0))
-                ).toFixed(2)}€ ajouté au prix de revient de chaque unité en stock.
+                {parseFloat(shippingCost) > 0 && (
+                  <>Port réparti : +{(
+                    (parseFloat(shippingCost) || 0) /
+                    Math.max(1, items.reduce((sum, it) => sum + (parseInt(it.quantity) || 1), 0))
+                  ).toFixed(2)}€/unité, puis </>
+                )}
+                +{(VAT_RATE * 100).toFixed(0)}% de TVA appliqués au prix de revient en stock.
               </p>
             )}
           </div>
