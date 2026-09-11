@@ -337,21 +337,19 @@ export default function Orders() {
 
                 <div className="pt-3 border-t border-white/5 mb-1 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 uppercase tracking-wide">Sous-total pièces</span>
-                    <span className="text-xs text-gray-400">{getItemsSubtotal(order.id).toFixed(2)}€</span>
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Pièces (TVA incl.)</span>
+                    <span className="text-xs text-gray-400">
+                      {(getItemsSubtotal(order.id) * (1 + VAT_RATE)).toFixed(2)}€
+                    </span>
                   </div>
                   {order.shipping_cost > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500 uppercase tracking-wide">Frais de port</span>
-                      <span className="text-xs text-gray-400">+{order.shipping_cost.toFixed(2)}€</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Livraison (TVA incl.)</span>
+                      <span className="text-xs text-gray-400">
+                        {(order.shipping_cost * (1 + VAT_RATE)).toFixed(2)}€
+                      </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 uppercase tracking-wide">TVA (20%)</span>
-                    <span className="text-xs text-gray-400">
-                      +{((getItemsSubtotal(order.id) + (order.shipping_cost || 0)) * VAT_RATE).toFixed(2)}€
-                    </span>
-                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500 uppercase tracking-wide">Total payé</span>
                     <span className="text-sm font-bold text-violet-300">
