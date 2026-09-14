@@ -50,6 +50,20 @@ const DEVICE_MODELS: Record<string, { name: string; family: string }> = {
 };
 
 // ============================================================================
+// CODES SMC "sensor array" — quand un panic SMC liste un tableau de capteurs
+// (ex: "S.sensor array 0 - 7 is 0, 2097152, 0, 0, 0, 0, 0"), la valeur non
+// nulle est un code hexa qui identifie le capteur en défaut.
+// ⚠️ Peu/pas documenté officiellement — table à compléter au fil de tes
+// réparations (ajoute simplement une ligne "0xVALEUR": {...} ci-dessous).
+// ============================================================================
+const SMC_SENSOR_CODES: Record<string, { label: string; part: string }> = {
+  '0x200000': {
+    label: 'Capteur de proximité',
+    part: 'Nappe de proximité / capteur avant',
+  },
+};
+
+// ============================================================================
 // BASE DE DIAGNOSTIC — pistes heuristiques basées sur des mots-clés connus
 // dans la communauté repair (Tristar/Hydra, SMC, NAND, etc.)
 // ⚠️ Ce n'est PAS une base officielle Apple : ce sont des pistes de départ,
@@ -150,6 +164,7 @@ interface ParsedResult {
   panicString: string;
   codes: string[];
   totalCodes: number;
+  sensorCode: string | null;
 }
 
 const SAMPLE_LOG = `{"bug_type":"210","timestamp":"2026-02-20 14:32:11.00 +0100","os_version":"iPhone OS 17.3 (21D50)","incident_id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}
@@ -175,12 +190,39 @@ const NOISE_MARKERS = [
 
 const MAX_CODES_SHOWN = 15;
 
+// Extraction tolérante : gère les copier-coller/OCR foireux où le guillemet
+// d'ouverture de la valeur est remplacé par un autre caractère (*, ', etc.)
+// ou carrément absent, ce qui casse un regex JSON strict.
+function extractField(raw: string, key: string): string | null {
+  const re = new RegExp(`"?${key}"?\\s*:\\s*[\\s"'*’‘“”]{0,3}([^"]*?)["\\n]`, 's');
+  const m = raw.match(re);
+  return m && m[1].trim() ? m[1].trim() : null;
+}
+
+// Le sensor array liste plusieurs valeurs séparées par des virgules ; la
+// première non nulle est le code hexa du capteur en défaut (ex: 2097152 = 0x200000).
+function extractSensorCode(text: string): string | null {
+  const m = text.match(/sensor array[\s\S]*?\bis\b\s*((?:\d+\s*,\s*){2,}\d+)/i);
+  if (!m) return null;
+  const nonZero = m[1]
+    .split(',')
+    .map((v) => parseInt(v.trim(), 10))
+    .find((n) => !isNaN(n) && n !== 0);
+  return nonZero !== undefined ? '0x' + nonZero.toString(16) : null;
+}
+
 function parsePanicLog(raw: string): ParsedResult {
   const productMatch = raw.match(/"product"\s*:\s*"([^"]+)"/);
-  const osVersionMatch = raw.match(/"os_version"\s*:\s*"([^"]+)"/) || raw.match(/"build"\s*:\s*"([^"]+)"/);
+  const osVersion = extractField(raw, 'os_version') || extractField(raw, 'build');
   const panicStringMatch = raw.match(/"panicString"\s*:\s*"([\s\S]*?)"\s*[,}]/);
 
-  const panicStringRaw = panicStringMatch ? panicStringMatch[1] : '';
+  // Si le format strict échoue (guillemets corrompus, texte tronqué...),
+  // on prend tout ce qui suit la clé "panicString" plutôt que de renvoyer vide.
+  let panicStringRaw = panicStringMatch ? panicStringMatch[1] : '';
+  if (!panicStringRaw) {
+    const loose = raw.match(/"panicString"\s*:\s*[\s"'*’‘“”]{0,3}([\s\S]*)/);
+    panicStringRaw = loose ? loose[1] : '';
+  }
   const panicString = panicStringRaw.replace(/\\n/g, ' ').replace(/\\"/g, '"');
 
   // Message "core" : on coupe avant les dumps verbeux (threads, mailbox log...)
@@ -191,16 +233,22 @@ function parsePanicLog(raw: string): ParsedResult {
     const idx = coreString.indexOf(marker);
     if (idx !== -1) coreString = coreString.slice(0, idx);
   }
+  coreString = coreString.trim() || panicString;
 
   const allCodes = Array.from(new Set((coreString.match(/0x[0-9a-fA-F]{2,}/g) || [])));
   const codes = allCodes.slice(0, MAX_CODES_SHOWN);
 
+  // Cherche le code sensor array dans le message ciblé, sinon dans tout le brut
+  // (pour les pastes trop abîmés pour isoler proprement panicString).
+  const sensorCode = extractSensorCode(coreString) || extractSensorCode(raw);
+
   return {
     product: productMatch ? productMatch[1] : null,
-    osVersion: osVersionMatch ? osVersionMatch[1] : null,
-    panicString: coreString.trim() || panicString,
+    osVersion,
+    panicString: coreString,
     codes,
     totalCodes: allCodes.length,
+    sensorCode,
   };
 }
 
@@ -247,8 +295,23 @@ export default function PanicPro() {
 
   const deviceInfo = result?.product ? DEVICE_MODELS[result.product] : null;
 
+  const sensorDiagnostic =
+    result?.sensorCode && SMC_SENSOR_CODES[result.sensorCode]
+      ? {
+          label: `Code ${result.sensorCode}`,
+          title: `${SMC_SENSOR_CODES[result.sensorCode].label} non détecté`,
+          whatToCheck: 'La nappe est-elle bien branchée ? Vérifier après remplacement d\'écran.',
+          part: SMC_SENSOR_CODES[result.sensorCode].part,
+        }
+      : null;
+
   const matchedDiagnostics = result
-    ? DIAGNOSTIC_RULES.filter((rule) => rule.match.test(result.panicString))
+    ? [
+        ...(sensorDiagnostic ? [sensorDiagnostic] : []),
+        ...DIAGNOSTIC_RULES.filter(
+          (rule) => rule.match.test(result.panicString) && !(sensorDiagnostic && rule.label === 'SMC PANIC')
+        ),
+      ]
     : [];
 
   return (
