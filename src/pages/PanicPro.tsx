@@ -80,6 +80,13 @@ const DIAGNOSTIC_RULES: DiagnosticRule[] = [
     part: 'Nappe port de charge',
   },
   {
+    match: /dcp panic|iomfb_mailbox|apt firmware/i,
+    label: 'DCP / Écran',
+    title: "Panic du co-processeur d'affichage (DCP)",
+    whatToCheck: "Souvent lié à l'écran (nappe, connecteur, ou écran non-Apple incompatible). Tester avec un écran de remplacement d'origine.",
+    part: "Écran / Nappe écran (ou carte mère si le problème persiste avec un écran neuf)",
+  },
+  {
     match: /backlight/i,
     label: 'Backlight',
     title: "Problème de rétroéclairage écran",
@@ -142,6 +149,7 @@ interface ParsedResult {
   osVersion: string | null;
   panicString: string;
   codes: string[];
+  totalCodes: number;
 }
 
 const SAMPLE_LOG = `{"bug_type":"210","timestamp":"2026-02-20 14:32:11.00 +0100","os_version":"iPhone OS 17.3 (21D50)","incident_id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}
@@ -155,6 +163,18 @@ const SAMPLE_LOG = `{"bug_type":"210","timestamp":"2026-02-20 14:32:11.00 +0100"
   "panicString" : "SMC PANIC - Loss of sensors - ASSERTION FAILED: Sensor Array 0x800 at (/BuildRoot/Library/Caches/com.apple.xbs/Sources/SMCFirmware/SMCFirmware-2.30.2/common/smc_sensor.c:629)\\nPlease inspect the panic log for more details.",
 }`;
 
+// Sections verbeuses (dumps de threads/mailbox/RTKit) qui polluent panicString
+// sur les panic "full" — on coupe avant pour garder juste le message utile.
+const NOISE_MARKERS = [
+  'RTKit Task List:',
+  'AP->IOP Mailbox Log',
+  'Kernel Extensions in backtrace:',
+  'Zone info:',
+  'Mailbox (0):',
+];
+
+const MAX_CODES_SHOWN = 15;
+
 function parsePanicLog(raw: string): ParsedResult {
   const productMatch = raw.match(/"product"\s*:\s*"([^"]+)"/);
   const osVersionMatch = raw.match(/"os_version"\s*:\s*"([^"]+)"/) || raw.match(/"build"\s*:\s*"([^"]+)"/);
@@ -163,13 +183,24 @@ function parsePanicLog(raw: string): ParsedResult {
   const panicStringRaw = panicStringMatch ? panicStringMatch[1] : '';
   const panicString = panicStringRaw.replace(/\\n/g, ' ').replace(/\\"/g, '"');
 
-  const codes = Array.from(new Set((raw.match(/0x[0-9a-fA-F]{2,}/g) || [])));
+  // Message "core" : on coupe avant les dumps verbeux (threads, mailbox log...)
+  // pour ne garder que la vraie raison du panic, utilisée pour le diagnostic
+  // et l'extraction des codes (évite les faux positifs / le mur de hex).
+  let coreString = panicString;
+  for (const marker of NOISE_MARKERS) {
+    const idx = coreString.indexOf(marker);
+    if (idx !== -1) coreString = coreString.slice(0, idx);
+  }
+
+  const allCodes = Array.from(new Set((coreString.match(/0x[0-9a-fA-F]{2,}/g) || [])));
+  const codes = allCodes.slice(0, MAX_CODES_SHOWN);
 
   return {
     product: productMatch ? productMatch[1] : null,
     osVersion: osVersionMatch ? osVersionMatch[1] : null,
-    panicString,
+    panicString: coreString.trim() || panicString,
     codes,
+    totalCodes: allCodes.length,
   };
 }
 
@@ -334,6 +365,11 @@ export default function PanicPro() {
               <h3 className="text-sm font-bold text-red-400 uppercase tracking-wide flex items-center gap-2 mb-4">
                 <Code2 className="w-4 h-4" />
                 Codes détectés
+                {result.totalCodes > result.codes.length && (
+                  <span className="text-gray-500 font-normal normal-case">
+                    ({result.codes.length} sur {result.totalCodes})
+                  </span>
+                )}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {result.codes.map((code) => (
