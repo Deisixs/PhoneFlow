@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   Code2,
   Wrench,
   Activity,
+  Upload,
 } from 'lucide-react';
 
 // ============================================================================
@@ -257,11 +258,13 @@ export default function PanicPro() {
   const [rawLog, setRawLog] = useState('');
   const [result, setResult] = useState<ParsedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAnalyze = () => {
-    if (!rawLog.trim()) return;
+  const analyze = (text: string) => {
+    if (!text.trim()) return;
     try {
-      const parsed = parsePanicLog(rawLog);
+      const parsed = parsePanicLog(text);
       if (!parsed.product && !parsed.panicString) {
         setError("Impossible d'extraire des informations de ce fichier. Vérifie que c'est bien un panic log iPhone (.ips).");
         setResult(null);
@@ -275,16 +278,39 @@ export default function PanicPro() {
     }
   };
 
+  const handleAnalyze = () => analyze(rawLog);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      setRawLog(text);
+      setError(null);
+      setResult(null);
+      analyze(text);
+    };
+    reader.onerror = () => {
+      setError("Impossible de lire ce fichier.");
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const handleClear = () => {
     setRawLog('');
     setResult(null);
     setError(null);
+    setFileName(null);
   };
 
   const handleExample = () => {
     setRawLog(SAMPLE_LOG);
     setResult(null);
     setError(null);
+    setFileName(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -342,19 +368,37 @@ export default function PanicPro() {
             <span className="w-3 h-3 rounded-full bg-yellow-500" />
             <span className="w-3 h-3 rounded-full bg-green-500" />
           </div>
-          <span className="text-xs text-gray-500 font-mono ml-2">panic_full.ips</span>
+          <span className="text-xs text-gray-500 font-mono ml-2">{fileName || 'panic_full.ips'}</span>
         </div>
         <textarea
           value={rawLog}
-          onChange={(e) => setRawLog(e.target.value)}
+          onChange={(e) => {
+            setRawLog(e.target.value);
+            setFileName(null);
+          }}
           onKeyDown={handleKeyDown}
           rows={12}
-          placeholder={`Colle ici le contenu du fichier panic full iPhone...\n\n(Ctrl+Entrée pour analyser)`}
+          placeholder={`Colle ici le contenu du fichier panic full iPhone, ou importe directement un .ips...\n\n(Ctrl+Entrée pour analyser)`}
           className="w-full p-4 bg-transparent text-gray-300 placeholder-gray-600 font-mono text-sm resize-none focus:outline-none"
         />
       </div>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".ips,.txt,text/plain"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       <div className="flex flex-wrap gap-3">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 rounded-xl font-semibold hover:bg-emerald-600/30 transition"
+        >
+          <Upload className="w-4 h-4" />
+          Importer .ips
+        </button>
         <button
           onClick={handleAnalyze}
           disabled={!rawLog.trim()}
